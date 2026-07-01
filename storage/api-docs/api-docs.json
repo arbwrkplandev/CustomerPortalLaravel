@@ -1,0 +1,338 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "WrkPlan REST API",
+        "description": "Multi-tenant customer portal and admin hub. Auth layer is swappable between Laravel and .NET providers via AUTH_PROVIDER env variable. All endpoints versioned at /api/v1/",
+        "contact": {
+            "email": "api@wrkplan.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "WrkPlan Platform"
+        }
+    ],
+    "paths": {
+        "/api/v1/admin/tenants": {
+            "get": {
+                "tags": [
+                    "Admin - Tenants"
+                ],
+                "summary": "List all tenants",
+                "operationId": "4fb9f63538792e588c28f17200d00b7b",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated tenant list"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Admin - Tenants"
+                ],
+                "summary": "Create a new tenant/customer",
+                "operationId": "f7dd7e0d99717f5e0e6e5eafb92c9961",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_name",
+                                    "contact_name",
+                                    "contact_email"
+                                ],
+                                "properties": {
+                                    "company_name": {
+                                        "type": "string"
+                                    },
+                                    "contact_name": {
+                                        "type": "string"
+                                    },
+                                    "contact_email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "trial"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Tenant created"
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/tenants/{id}": {
+            "get": {
+                "tags": [
+                    "Admin - Tenants"
+                ],
+                "summary": "Get tenant details",
+                "operationId": "da39314a173cc026477f89c86ba955b4",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tenant details"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Admin - Tenants"
+                ],
+                "summary": "Update tenant",
+                "operationId": "2852f3c9795171255b35c6cde83b251b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tenant updated"
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/tenants/{id}/toggle-status": {
+            "post": {
+                "tags": [
+                    "Admin - Tenants"
+                ],
+                "summary": "Toggle active/inactive",
+                "operationId": "8267ed64424d8b056c74dd60930a5495",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status toggled"
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/tenants/{id}/assign-subscription": {
+            "post": {
+                "tags": [
+                    "Admin - Tenants"
+                ],
+                "summary": "Assign subscription plan",
+                "operationId": "8d3abf6b2bd5d4b3f2e095264a0b94ef",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "plan_id",
+                                    "billing_cycle"
+                                ],
+                                "properties": {
+                                    "plan_id": {
+                                        "type": "integer"
+                                    },
+                                    "billing_cycle": {
+                                        "type": "string",
+                                        "example": "monthly"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Subscription assigned"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Login user",
+                "operationId": "a7997e7c1e3bfed64d4e56de82415931",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "example": "admin@wrkplan.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "password"
+                                    },
+                                    "remember": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful"
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout user",
+                "operationId": "f6b8957b4c0b25636613a9f0512a8ba9",
+                "responses": {
+                    "200": {
+                        "description": "Logged out"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Get current user",
+                "operationId": "37d33f0281f67d31d05b4c45eea0143b",
+                "responses": {
+                    "200": {
+                        "description": "Current user payload"
+                    },
+                    "401": {
+                        "description": "Not authenticated"
+                    }
+                }
+            }
+        },
+        "/api/v1/customer/dashboard": {
+            "get": {
+                "tags": [
+                    "Customer - Dashboard"
+                ],
+                "summary": "Dashboard summary",
+                "operationId": "c00ae3e3d170eea80eb0978eb7285e11",
+                "responses": {
+                    "200": {
+                        "description": "Dashboard data"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "session": {
+                "type": "apiKey",
+                "name": "wrkplan_session",
+                "in": "cookie"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "Auth endpoints - provider-agnostic"
+        },
+        {
+            "name": "Admin - Tenants",
+            "description": "Tenant/Customer management"
+        },
+        {
+            "name": "Customer - Dashboard",
+            "description": "Customer portal dashboard data"
+        }
+    ]
+}
