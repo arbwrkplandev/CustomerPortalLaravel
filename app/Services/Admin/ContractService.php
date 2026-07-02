@@ -98,6 +98,18 @@ class ContractService
         return $contract->fresh();
     }
 
+    public function revokeFromCustomer(Contract $contract): Contract
+    {
+        if ($contract->status === 'signed') {
+            throw new \RuntimeException('Cannot revoke a contract that has already been signed by the customer.');
+        }
+        if (!in_array($contract->status, ['sent', 'pending_signature'], true)) {
+            throw new \RuntimeException('Only contracts awaiting signature can be revoked.');
+        }
+        $contract->update(['status' => 'draft', 'sent_at' => null]);
+        return $contract->fresh();
+    }
+
     public function signContract(Contract $contract, array $signatureData): Contract
     {
         // Persist the signature image as a PNG file so it survives forever

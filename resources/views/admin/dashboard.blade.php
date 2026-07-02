@@ -68,7 +68,10 @@
     <div class="xl:col-span-2 card animate-fadeInUp">
         <div class="flex items-center justify-between mb-6">
             <h3 class="font-bold text-lg" style="color: var(--color-text)">Recent Customers</h3>
-            <a href="{{ route('admin.tenants.index') }}" class="btn btn-outline text-sm py-2">View All</a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('admin.tenants.create') }}" class="btn btn-primary text-sm py-2">Add Customer</a>
+                <a href="{{ route('admin.tenants.index') }}" class="btn btn-outline text-sm py-2">View All</a>
+            </div>
         </div>
         <div class="table-container">
             <table class="data-table">

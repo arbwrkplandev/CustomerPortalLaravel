@@ -20,10 +20,10 @@
                 @endif
                 @if($ticket->status === 'open') <span class="badge badge-success">Open</span>
                 @elseif($ticket->status === 'in_progress') <span class="badge badge-info">In Progress</span>
-                @elseif($ticket->status === 'waiting_customer') <span class="badge badge-warning">Awaiting Customer</span>
+                @elseif(in_array($ticket->status, ['waiting_customer', 'waiting_response'])) <span class="badge badge-warning">Awaiting Customer</span>
                 @elseif($ticket->status === 'resolved') <span class="badge" style="background: var(--color-surface-2); color: var(--color-text-secondary)">Resolved</span>
                 @endif
-                <span class="text-sm" style="color: var(--color-text-secondary)">{{ $ticket->tenant->name }} · {{ $ticket->created_at->diffForHumans() }}</span>
+                <span class="text-sm" style="color: var(--color-text-secondary)">{{ $ticket->tenant->company_name ?? $ticket->tenant->name }} · {{ $ticket->created_at->diffForHumans() }}</span>
             </div>
         </div>
     </div>
@@ -40,7 +40,7 @@
             <form method="POST" action="{{ route('admin.tickets.status', $ticket) }}" class="flex items-center gap-2">
                 @csrf @method('PATCH')
                 <select name="status" class="form-input">
-                    @foreach(['open', 'in_progress', 'waiting_customer', 'resolved', 'closed'] as $s)
+                    @foreach(['open', 'in_progress', 'waiting_response', 'resolved', 'closed'] as $s)
                     <option value="{{ $s }}" {{ $ticket->status === $s ? 'selected' : '' }}>{{ ucwords(str_replace('_', ' ', $s)) }}</option>
                     @endforeach
                 </select>
@@ -49,7 +49,6 @@
             <form method="POST" action="{{ route('admin.tickets.assign', $ticket) }}" class="flex items-center gap-2">
                 @csrf @method('PATCH')
                 <select name="admin_id" class="form-input">
-                    <option value="">Unassigned</option>
                     @foreach($admins as $admin)
                     <option value="{{ $admin->id }}" {{ $ticket->assigned_to == $admin->id ? 'selected' : '' }}>{{ $admin->name }}</option>
                     @endforeach

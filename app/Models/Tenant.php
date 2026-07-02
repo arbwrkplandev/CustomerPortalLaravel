@@ -4,7 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 class Tenant extends Model {
     use SoftDeletes;
-    protected $fillable = ['company_name','slug','contact_name','contact_email','contact_phone','address','city','country','timezone','logo','status','trial_ends_at','settings'];
+    protected $fillable = ['company_name','corp_id','slug','contact_name','contact_email','contact_phone','address','city','country','timezone','logo','status','trial_ends_at','settings'];
     protected $casts = ['settings'=>'array','trial_ends_at'=>'datetime'];
 
     /** Convenience accessor so views can use $tenant->name or $tenant->email */
@@ -15,7 +15,12 @@ class Tenant extends Model {
 
     public function users(){ return $this->hasMany(User::class); }
     public function subscriptions(){ return $this->hasMany(CustomerSubscription::class); }
-    public function activeSubscription(){ return $this->hasOne(CustomerSubscription::class)->where('status','active')->latest(); }
+    public function activeSubscription(){
+        return $this->hasOne(CustomerSubscription::class)
+            ->where('status','active')
+            ->whereDate('end_date', '>=', now()->toDateString())
+            ->latest('start_date');
+    }
     public function contracts(){ return $this->hasMany(Contract::class); }
     public function invoices(){ return $this->hasMany(Invoice::class); }
     public function supportTickets(){ return $this->hasMany(SupportTicket::class); }

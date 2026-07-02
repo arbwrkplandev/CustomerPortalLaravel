@@ -63,7 +63,7 @@
                             <div class="font-semibold" style="color: var(--color-text-primary)">{{ Str::limit($ticket->subject, 50) }}</div>
                             <div class="text-xs mt-0.5" style="color: var(--color-text-secondary)">{{ $ticket->category }}</div>
                         </td>
-                        <td style="color: var(--color-text-secondary)">{{ $ticket->tenant->name }}</td>
+                        <td style="color: var(--color-text-secondary)">{{ $ticket->tenant->company_name ?? $ticket->tenant->name }}</td>
                         <td>
                             @if($ticket->priority === 'critical') <span class="badge badge-danger">Critical</span>
                             @elseif($ticket->priority === 'high') <span class="badge badge-warning">High</span>

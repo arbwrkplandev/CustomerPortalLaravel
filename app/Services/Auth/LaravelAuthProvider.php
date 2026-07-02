@@ -29,9 +29,22 @@ class LaravelAuthProvider implements AuthProviderInterface
         $this->plainTextMode = (bool) config('wrkplan.auth.plain_text_passwords', false);
     }
 
-    public function attempt(string $email, string $password, bool $remember = false): ?array
+    public function attempt(string $identifier, string $password, bool $remember = false, ?string $corpId = null): ?array
     {
-        $user = User::where('email', $email)->where('is_active', true)->first();
+        $userQuery = User::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($identifier) {
+                $query->where('email', $identifier)
+                    ->orWhere('username', $identifier);
+            });
+
+        if (!empty($corpId)) {
+            $userQuery->whereHas('tenant', function ($query) use ($corpId) {
+                $query->where('corp_id', $corpId);
+            });
+        }
+
+        $user = $userQuery->first();
 
         if (!$user) {
             return null;

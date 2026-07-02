@@ -3,46 +3,81 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\SupportTicket;
-use App\Models\User;
-use App\Services\Admin\SupportTicketService;
+use App\Support\InternalApiGateway;
 use Illuminate\Http\Request;
 
 class AdminTicketController extends Controller
 {
-    public function __construct(protected SupportTicketService $ticketService) {}
+    public function __construct(protected InternalApiGateway $api) {}
 
     public function index(Request $request)
     {
-        $tickets = $this->ticketService->list($request->only(['search', 'status', 'priority']));
+        $response = $this->api->get('/admin/tickets', [
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),
+            'priority' => $request->query('priority'),
+            'per_page' => 15,
+            'page' => $request->integer('page', 1),
+        ]);
+
+        $tickets = $this->api->toPaginator($response, 15);
+
         return view('admin.tickets.index', compact('tickets'));
     }
 
-    public function show(SupportTicket $ticket)
+    public function show(int $ticket)
     {
-        $ticket->load(['tenant', 'creator', 'assignee', 'messages.sender']);
-        $admins = User::whereIn('role', ['admin', 'superadmin'])->where('is_active', true)->get();
+        $response = $this->api->get('/admin/tickets/' . $ticket);
+        if (!($response['success'] ?? false)) {
+            abort(404);
+        }
+
+        $payload = $this->api->toEntities($response['data'] ?? []);
+        $ticket = $payload?->ticket;
+        $admins = $payload?->admins ?? [];
+
         return view('admin.tickets.show', compact('ticket', 'admins'));
     }
 
-    public function reply(Request $request, SupportTicket $ticket)
+    public function reply(Request $request, int $ticket)
     {
         $request->validate(['message' => 'required|string']);
-        $this->ticketService->addMessage($ticket, array_merge($request->all(), ['sender_id' => auth()->id(), 'sender_type' => 'admin']));
+
+        $response = $this->api->post('/admin/tickets/' . $ticket . '/reply', array_merge($request->all(), [
+            'sender_id' => auth()->id(),
+            'sender_type' => 'admin',
+        ]));
+
+        if (!($response['success'] ?? false)) {
+            return back()->withErrors($this->api->extractErrors($response))->withInput();
+        }
+
         return back()->with('success', 'Reply sent.');
     }
 
-    public function updateStatus(Request $request, SupportTicket $ticket)
+    public function updateStatus(Request $request, int $ticket)
     {
-        $request->validate(['status' => 'required|in:open,in_progress,waiting_customer,resolved,closed']);
-        $this->ticketService->updateStatus($ticket, $request->status);
+        $request->validate(['status' => 'required|in:open,in_progress,waiting_response,resolved,closed']);
+
+        $response = $this->api->patch('/admin/tickets/' . $ticket . '/status', $request->all());
+        if (!($response['success'] ?? false)) {
+            return back()->withErrors($this->api->extractErrors($response))->withInput();
+        }
+
         return back()->with('success', 'Status updated.');
     }
 
-    public function assign(Request $request, SupportTicket $ticket)
+    public function assign(Request $request, int $ticket)
     {
-        $request->validate(['admin_id' => 'nullable|exists:users,id']);
-        $ticket->update(['assigned_to' => $request->admin_id ?: null]);
+        $request->validate(['admin_id' => 'required|integer']);
+
+        $response = $this->api->patch('/admin/tickets/' . $ticket . '/assign', [
+            'admin_id' => $request->integer('admin_id'),
+        ]);
+        if (!($response['success'] ?? false)) {
+            return back()->withErrors($this->api->extractErrors($response))->withInput();
+        }
+
         return back()->with('success', 'Ticket assigned.');
     }
 }

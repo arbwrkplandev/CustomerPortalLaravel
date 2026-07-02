@@ -3,17 +3,26 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Announcement;
-use App\Services\Admin\AnnouncementService;
+use App\Support\InternalApiGateway;
 use Illuminate\Http\Request;
 
 class AdminAnnouncementController extends Controller
 {
-    public function __construct(protected AnnouncementService $announcementService) {}
+    public function __construct(protected InternalApiGateway $api) {}
 
     public function index(Request $request)
     {
-        $announcements = $this->announcementService->list($request->only(['search', 'is_published', 'type']));
+        $perPage = 15;
+        $response = $this->api->get('/admin/announcements', [
+            'search' => $request->query('search'),
+            'is_published' => $request->query('is_published'),
+            'type' => $request->query('type'),
+            'page' => $request->integer('page', 1),
+            'per_page' => $perPage,
+        ]);
+
+        $announcements = $this->api->toPaginator($response, $perPage);
+
         return view('admin.announcements.index', compact('announcements'));
     }
 
@@ -22,27 +31,55 @@ class AdminAnnouncementController extends Controller
     public function store(Request $request)
     {
         $request->validate(['title' => 'required|string|max:255', 'content' => 'required|string']);
-        $this->announcementService->create($request->all());
+
+        $response = $this->api->post('/admin/announcements', $request->all());
+        if (!($response['success'] ?? false)) {
+            return back()->withErrors($this->api->extractErrors($response))->withInput();
+        }
+
         return redirect()->route('admin.announcements.index')->with('success', 'Announcement created.');
     }
 
-    public function edit(Announcement $announcement) { return view('admin.announcements.edit', compact('announcement')); }
-
-    public function update(Request $request, Announcement $announcement)
+    public function edit(int $announcement)
     {
-        $this->announcementService->update($announcement, $request->all());
+        $response = $this->api->get('/admin/announcements/' . $announcement);
+        if (!($response['success'] ?? false)) {
+            abort(404);
+        }
+
+        $announcement = $this->api->toEntities($response['data'] ?? []);
+
+        return view('admin.announcements.edit', compact('announcement'));
+    }
+
+    public function update(Request $request, int $announcement)
+    {
+        $response = $this->api->put('/admin/announcements/' . $announcement, $request->all());
+        if (!($response['success'] ?? false)) {
+            return back()->withErrors($this->api->extractErrors($response))->withInput();
+        }
+
         return redirect()->route('admin.announcements.index')->with('success', 'Announcement updated.');
     }
 
-    public function togglePublish(Announcement $announcement)
+    public function togglePublish(int $announcement)
     {
-        $this->announcementService->togglePublish($announcement);
-        return back()->with('success', $announcement->fresh()->is_published ? 'Published.' : 'Unpublished.');
+        $response = $this->api->post('/admin/announcements/' . $announcement . '/toggle-publish');
+        if (!($response['success'] ?? false)) {
+            return back()->withErrors($this->api->extractErrors($response));
+        }
+
+        $entity = $this->api->toEntities($response['data'] ?? []);
+        return back()->with('success', $entity?->is_published ? 'Published.' : 'Unpublished.');
     }
 
-    public function destroy(Announcement $announcement)
+    public function destroy(int $announcement)
     {
-        $announcement->delete();
+        $response = $this->api->delete('/admin/announcements/' . $announcement);
+        if (!($response['success'] ?? false)) {
+            return back()->withErrors($this->api->extractErrors($response));
+        }
+
         return redirect()->route('admin.announcements.index')->with('success', 'Deleted.');
     }
 }

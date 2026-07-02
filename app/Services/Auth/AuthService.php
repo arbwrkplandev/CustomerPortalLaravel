@@ -9,7 +9,7 @@ namespace App\Services\Auth;
  * The underlying provider (Laravel or .NET) is swapped via config.
  *
  * Usage:
- *   app(AuthService::class)->attempt($email, $password)
+ *   app(AuthService::class)->attempt($identifier, $password, false, $corpId)
  *   app(AuthService::class)->check()
  *   app(AuthService::class)->currentUserPayload()
  */
@@ -19,9 +19,9 @@ class AuthService
         protected AuthProviderInterface $provider
     ) {}
 
-    public function attempt(string $email, string $password, bool $remember = false): ?array
+    public function attempt(string $identifier, string $password, bool $remember = false, ?string $corpId = null): ?array
     {
-        return $this->provider->attempt($email, $password, $remember);
+        return $this->provider->attempt($identifier, $password, $remember, $corpId);
     }
 
     public function logout(): void

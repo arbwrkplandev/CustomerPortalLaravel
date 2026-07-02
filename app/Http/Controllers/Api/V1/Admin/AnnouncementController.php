@@ -49,6 +49,11 @@ class AnnouncementController extends Controller
         return $this->created($announcement);
     }
 
+    public function show(Announcement $announcement): JsonResponse
+    {
+        return $this->success($announcement);
+    }
+
     public function update(Request $request, Announcement $announcement): JsonResponse
     {
         $announcement = $this->announcementService->update($announcement, $request->all());

@@ -61,7 +61,8 @@ class ContractController extends Controller
         }
 
         $signatureData = array_merge($request->all(), [
-            'signer_name' => $request->signer_name,
+            'signer_name'     => $request->signer_name,
+            'signature_image' => $request->signature_data,
         ]);
 
         $contract = $this->contractService->signContract($contract, $signatureData);
@@ -98,5 +99,20 @@ class ContractController extends Controller
         }
 
         return \Illuminate\Support\Facades\Storage::download($path);
+    }
+
+    public function stream(int $id, string $type = 'original'): mixed
+    {
+        $contract = Contract::where('tenant_id', Auth::user()->tenant_id)->findOrFail($id);
+        $path = $type === 'signed' ? $contract->signed_pdf_path : $contract->original_pdf_path;
+
+        if (!$path || !\Illuminate\Support\Facades\Storage::exists($path)) {
+            return $this->notFound('PDF not found');
+        }
+
+        return response()->file(
+            \Illuminate\Support\Facades\Storage::path($path),
+            ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline']
+        );
     }
 }

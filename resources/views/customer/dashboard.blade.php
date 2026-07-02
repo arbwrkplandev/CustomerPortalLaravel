@@ -28,6 +28,27 @@
 @endsection
 
 @section('content')
+<!-- Welcome Banner -->
+<div class="mb-6 p-5 rounded-2xl animate-fadeInUp" style="background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(59,130,246,0.08)); border: 1px solid rgba(16,185,129,0.25)">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-black" style="color: var(--color-text)">
+                {{ $greeting }}, {{ auth()->user()->name }}
+            </h2>
+            <p class="text-sm mt-1" style="color: var(--color-text-muted)">
+                {{ $motivation }}
+            </p>
+        </div>
+        <div class="text-sm lg:text-right" style="color: var(--color-text-muted)">
+            <div class="font-semibold" style="color: var(--color-text)">
+                {{ $tenant?->country ?: 'Your Region' }} Time
+            </div>
+            <div>{{ $localNow->format('D, M d, Y h:i A') }}</div>
+            <div class="text-xs">{{ $timezone }}</div>
+        </div>
+    </div>
+</div>
+
 <!-- Subscription Banner -->
 @if($activeSubscription)
 <div class="mb-6 p-5 rounded-2xl flex items-center gap-4 animate-fadeInUp"
@@ -50,8 +71,14 @@
     <a href="{{ route('customer.subscription') }}" class="btn btn-warning text-sm">Renew Now</a>
     @endif
     <div class="text-right">
-        <div class="text-2xl font-black" style="color: #6366f1">${{ number_format($activeSubscription->amount, 2) }}</div>
+        <div class="text-2xl font-black" style="color: #6366f1">{{ $activeSubscription->currency ?? 'USD' }} {{ number_format($activeSubscription->amount, 2) }}</div>
         <div class="text-xs" style="color: var(--color-text-muted)">per {{ $activeSubscription->billing_cycle }}</div>
+        @if($activeSubscription->is_custom_rate)
+        <div class="text-xs mt-1" style="color: var(--color-text-muted)">
+            Base {{ $activeSubscription->currency ?? 'USD' }} {{ number_format($activeSubscription->base_amount ?? 0, 2) }}
+        </div>
+        <div class="text-xs" style="color: #f59e0b">Special price</div>
+        @endif
     </div>
 </div>
 @endif

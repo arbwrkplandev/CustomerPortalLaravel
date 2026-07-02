@@ -1,256 +1,246 @@
-# WrkPlan Database Schema
+# WrkPlan Database Schema (Current)
 
-Database: `wrkplan_db`  
-Engine: MySQL 8+ via XAMPP  
-Connection: Unix socket `/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock`
+Engine target: MySQL 8 (current), easy to map to SQL Server for .NET.
 
----
+## High-Level Relationships
 
-## Entity Relationship Overview
+- tenants 1-to-many users
+- tenants 1-to-many customer_subscriptions
+- plans 1-to-many customer_subscriptions
+- tenants 1-to-many invoices
+- invoices 1-to-many payments
+- tenants 1-to-many contracts
+- contracts 1-to-many contract_sign_fields
+- contracts 1-to-many contract_files
+- tenants 1-to-many support_tickets
+- support_tickets 1-to-many support_ticket_messages
+- announcements global or tenant-targeted
+- audit_logs captures major writes
+- auth_session_map stores provider-neutral session payload
 
-```
-tenants ──< users
-tenants ──< customer_subscriptions >── plans
-tenants ──< invoices >── payments
-tenants ──< contracts >── contract_sign_fields
-                      └── contract_files
-tenants ──< support_tickets >── support_ticket_messages
-announcements (global or tenant-targeted)
-audit_logs (all write operations)
-auth_session_map (provider-agnostic session tracking)
-```
+## Core Auth and Tenant Tables
 
----
+### tenants
 
-## Tables
+Important fields:
+- id
+- company_name
+- corp_id (customer login scope key)
+- contact_name
+- contact_email
+- contact_phone
+- city
+- country
+- timezone
+- status
+- trial_ends_at
+- settings (json)
+- deleted_at
 
-### `users`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| tenant_id | bigint FK→tenants | NULL for admin users |
-| name | varchar(255) | |
-| email | varchar(255) UNIQUE | |
-| password | varchar(255) | bcrypt hashed |
-| plain_password | varchar(255) NULL | For .NET migration only |
-| role | enum | `superadmin`, `admin`, `customer` |
-| is_active | boolean | Default true |
-| avatar | varchar NULL | Path to avatar file |
-| preferred_theme | varchar | `light`, `dark`, `system` |
-| preferred_color | varchar | Hex color for custom theme |
-| email_verified_at | timestamp NULL | |
-| deleted_at | timestamp NULL | Soft delete |
+### users
 
-### `tenants`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| company_name | varchar(255) | |
-| slug | varchar UNIQUE | URL-friendly identifier |
-| contact_name | varchar(255) | Primary contact person |
-| contact_email | varchar UNIQUE | |
-| contact_phone | varchar(30) NULL | |
-| address | text NULL | |
-| city | varchar(100) NULL | |
-| country | varchar(100) NULL | |
-| timezone | varchar(60) | Default: UTC |
-| logo | varchar NULL | Path to logo file |
-| status | enum | `active`, `inactive`, `suspended`, `trial` |
-| trial_ends_at | timestamp NULL | |
-| settings | JSON NULL | Arbitrary tenant settings |
-| deleted_at | timestamp NULL | Soft delete |
+Important fields:
+- id
+- tenant_id (nullable for admin users)
+- name
+- username (customer login key)
+- email
+- role (superadmin, admin, customer)
+- password
+- plain_password (legacy migration helper)
+- is_active
+- deleted_at
 
-### `plans`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| name | varchar(255) | e.g., "Professional" |
-| slug | varchar UNIQUE | |
-| description | text NULL | |
-| price_monthly | decimal(10,2) | |
-| price_quarterly | decimal(10,2) | |
-| price_annual | decimal(10,2) | |
-| features | JSON | Array of feature strings |
-| max_users | int NULL | NULL = unlimited |
-| max_storage_gb | int NULL | NULL = unlimited |
-| is_active | boolean | |
-| sort_order | int | Display order |
+## Plan and Subscription Tables
 
-### `customer_subscriptions`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| tenant_id | bigint FK→tenants | |
-| plan_id | bigint FK→plans | |
-| status | enum | `trial`, `active`, `cancelled`, `expired`, `paused` |
-| billing_cycle | enum | `monthly`, `quarterly`, `annual` |
-| price_paid | decimal(10,2) | Actual price at time of subscription |
-| starts_at | timestamp | |
-| ends_at | timestamp NULL | NULL = perpetual |
-| cancelled_at | timestamp NULL | |
-| notes | text NULL | |
-| created_by | bigint FK→users NULL | Admin who created it |
+### plans
 
-### `invoices`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| tenant_id | bigint FK→tenants | |
-| subscription_id | bigint FK→customer_subscriptions NULL | |
-| invoice_number | varchar UNIQUE | Auto-generated: INV-YYYYMM-XXXX |
-| status | enum | `draft`, `pending`, `paid`, `overdue`, `cancelled` |
-| subtotal | decimal(10,2) | |
-| tax_amount | decimal(10,2) | Default 0 |
-| total_amount | decimal(10,2) | |
-| due_date | date NULL | |
-| paid_at | timestamp NULL | |
-| notes | text NULL | |
-| line_items | JSON NULL | Array of line item objects |
-| created_by | bigint FK→users NULL | |
+Important fields:
+- id
+- name
+- slug
+- description
+- monthly_price
+- quarterly_price
+- annual_price
+- features (json)
+- max_users
+- is_active
+- sort_order
 
-### `payments`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| invoice_id | bigint FK→invoices | |
-| tenant_id | bigint FK→tenants | |
-| amount | decimal(10,2) | |
-| currency | varchar(3) | Default: USD |
-| method | enum | `bank_transfer`, `credit_card`, `cheque`, `cash`, `other` |
-| status | enum | `pending`, `completed`, `failed`, `refunded` |
-| gateway | varchar NULL | Payment gateway name |
-| gateway_reference | varchar NULL | External transaction ID |
-| gateway_response | JSON NULL | Full gateway response |
-| notes | text NULL | |
-| paid_at | timestamp NULL | |
-| recorded_by | bigint FK→users NULL | Admin who recorded payment |
+### customer_subscriptions
 
-### `contracts`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| tenant_id | bigint FK→tenants | |
-| title | varchar(255) | |
-| description | text NULL | |
-| content | longtext | Full contract text |
-| status | enum | `draft`, `sent`, `signed`, `cancelled`, `expired` |
-| valid_from | date NULL | |
-| valid_until | date NULL | |
-| sent_at | timestamp NULL | When sent to customer |
-| signed_at | timestamp NULL | When customer signed |
-| signed_by | bigint FK→users NULL | Customer who signed |
-| signature_image | longtext NULL | Base64 PNG of signature |
-| ip_address | varchar NULL | Signing IP for audit |
-| created_by | bigint FK→users NULL | Admin who created |
-| deleted_at | timestamp NULL | Soft delete |
+Important fields:
+- id
+- tenant_id
+- plan_id
+- billing_cycle (monthly, quarterly, annual)
+- status (active, expired, cancelled, pending)
+- start_date
+- end_date
+- next_renewal_date
+- amount (actual charged rate)
+- base_amount (default plan rate)
+- is_custom_rate (true for special pricing)
+- currency
+- notes
+- created_by
 
-### `contract_sign_fields`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| contract_id | bigint FK→contracts | |
-| field_type | enum | `signature`, `initials`, `date`, `text` |
-| page_number | int | |
-| x_position | decimal(8,2) | Percentage from left |
-| y_position | decimal(8,2) | Percentage from top |
-| width | decimal(8,2) | |
-| height | decimal(8,2) | |
-| is_required | boolean | |
-| value | text NULL | Filled value |
-| filled_at | timestamp NULL | |
+Pricing rule:
+- If custom rate provided, amount = custom rate and is_custom_rate = true.
+- base_amount always stores the plan-default rate for selected billing cycle.
 
-### `contract_files`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| contract_id | bigint FK→contracts | |
-| file_type | enum | `original`, `signed`, `amendment`, `attachment` |
-| file_path | varchar(255) | Storage path |
-| file_name | varchar(255) | Display name |
-| mime_type | varchar(100) | |
-| file_size | int | Bytes |
-| uploaded_by | bigint FK→users NULL | |
+## Billing Tables
 
-### `support_tickets`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| tenant_id | bigint FK→tenants | |
-| created_by | bigint FK→users | Customer who opened ticket |
-| assigned_to | bigint FK→users NULL | Admin assigned |
-| subject | varchar(255) | |
-| category | enum | `general`, `billing`, `technical`, `contract`, `other` |
-| priority | enum | `low`, `medium`, `high`, `critical` |
-| status | enum | `open`, `in_progress`, `waiting_customer`, `resolved`, `closed` |
-| resolved_at | timestamp NULL | |
-| deleted_at | timestamp NULL | Soft delete |
+### invoices
 
-### `support_ticket_messages`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| ticket_id | bigint FK→support_tickets | |
-| sender_id | bigint FK→users | |
-| sender_type | enum | `customer`, `admin` |
-| message | text | |
-| is_internal | boolean | Internal notes not visible to customer |
-| attachments | JSON NULL | File references |
+Important fields:
+- id
+- tenant_id
+- subscription_id
+- invoice_number
+- status
+- subtotal
+- tax_amount
+- total_amount
+- due_date
+- paid_at
+- line_items (json)
+- created_by
 
-### `announcements`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| created_by | bigint FK→users | |
-| title | varchar(255) | |
-| content | text | |
-| type | enum | `info`, `warning`, `success`, `maintenance`, `feature` |
-| priority | enum | `low`, `medium`, `high`, `critical` |
-| is_published | boolean | |
-| published_at | timestamp NULL | |
-| expires_at | timestamp NULL | |
-| target_tenants | JSON NULL | Array of tenant IDs, NULL = all |
-| target_roles | JSON NULL | Array of roles, NULL = all |
-| deleted_at | timestamp NULL | Soft delete |
+### payments
 
-### `audit_logs`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| tenant_id | bigint NULL | NULL for admin actions |
-| user_id | bigint FK→users NULL | NULL for system actions |
-| action | varchar(50) | e.g., `create`, `update`, `delete`, `login` |
-| auditable_type | varchar NULL | Model class name |
-| auditable_id | bigint NULL | Model ID |
-| description | text NULL | Human-readable description |
-| old_values | JSON NULL | State before change |
-| new_values | JSON NULL | State after change |
-| ip_address | varchar(45) NULL | |
-| user_agent | text NULL | |
-| created_at | timestamp | Only created_at (no updated_at) |
+Important fields:
+- id
+- invoice_id
+- tenant_id
+- amount
+- currency
+- method
+- status
+- payment_date
+- notes
 
-### `auth_session_map`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | bigint PK | |
-| user_id | bigint FK→users | |
-| session_token | varchar(64) | Unique session token |
-| provider | varchar(20) | `laravel` or `dotnet` |
-| payload | JSON | Full standardized session payload |
-| ip_address | varchar(45) NULL | |
-| user_agent | text NULL | |
-| expires_at | timestamp | |
-| created_at / updated_at | timestamps | |
+## Contract Tables
 
----
+### contracts
 
-## Demo Data (Seeded)
+Important fields:
+- id
+- tenant_id
+- title
+- content
+- status
+- sent_at
+- signed_at
+- signed_by
+- signature_image
+- created_by
 
-| Role | Email | Password |
-|------|-------|----------|
-| superadmin | superadmin@wrkplan.com | password |
-| admin | admin@wrkplan.com | password |
-| customer | john@acme.com | password |
-| customer | sarah@techstart.io | password |
+### contract_sign_fields
 
-Tenants: Acme Corp, TechStart Inc, Global Ventures, Sunrise Media  
-Plans: Starter ($49/mo), Professional ($149/mo), Enterprise ($499/mo)
+Important fields:
+- id
+- contract_id
+- field_type
+- page_number
+- x_position
+- y_position
+- width
+- height
+- is_required
+- value
+- filled_at
+
+### contract_files
+
+Important fields:
+- id
+- contract_id
+- tenant_id
+- file_type
+- file_path
+- file_name
+- mime_type
+- file_size
+- uploaded_by
+
+## Support Tables
+
+### support_tickets
+
+Important fields:
+- id
+- tenant_id
+- created_by
+- assigned_to
+- ticket_number
+- subject
+- description
+- category
+- priority
+- status
+- resolved_at
+
+### support_ticket_messages
+
+Important fields:
+- id
+- ticket_id
+- user_id
+- message
+- is_internal
+- attachments (json)
+
+## Platform Communication and Audit
+
+### announcements
+
+Important fields:
+- id
+- title
+- content
+- type
+- priority
+- is_published
+- published_at
+- expires_at
+- target_tenants (json)
+- target_roles (json)
+- created_by
+
+### audit_logs
+
+Important fields:
+- id
+- user_id
+- tenant_id
+- action
+- module
+- entity_id
+- entity_type
+- old_values (json)
+- new_values (json)
+- ip_address
+- user_agent
+- description
+
+### auth_session_map
+
+Important fields:
+- id
+- user_id
+- session_token
+- provider
+- payload (json)
+- ip_address
+- user_agent
+- expires_at
+
+## .NET Mapping Notes
+
+- Keep table and column names unchanged for first migration.
+- Map enum-like values to constrained strings in SQL Server.
+- Use decimal(10,2) equivalent for monetary fields.
+- Preserve json fields as nvarchar(max) with JSON constraints or typed projections.
+- Preserve subscription pricing triad: amount, base_amount, is_custom_rate.

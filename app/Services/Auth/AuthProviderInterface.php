@@ -35,7 +35,7 @@ interface AuthProviderInterface
      * Attempt to authenticate with given credentials.
      * Returns standardized session payload or null on failure.
      */
-    public function attempt(string $email, string $password, bool $remember = false): ?array;
+    public function attempt(string $identifier, string $password, bool $remember = false, ?string $corpId = null): ?array;
 
     /**
      * Log out the currently authenticated user.

@@ -3,33 +3,35 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tenant;
-use App\Models\SupportTicket;
-use App\Models\Contract;
-use App\Models\Invoice;
-use App\Models\Payment;
+use App\Support\ApiEntity;
+use App\Support\InternalApiGateway;
 
 class AdminDashboardController extends Controller
 {
+    public function __construct(protected InternalApiGateway $api) {}
+
     public function index()
     {
-        $stats = [
-            'total_tenants'    => Tenant::count(),
-            'active_tenants'   => Tenant::where('status', 'active')->count(),
-            'open_tickets'     => SupportTicket::whereNotIn('status', ['resolved', 'closed'])->count(),
-            'urgent_tickets'   => SupportTicket::where('priority', 'urgent')->whereNotIn('status', ['resolved', 'closed'])->count(),
-            'signed_contracts' => Contract::where('status', 'signed')->count(),
-            'pending_signature'=> Contract::where('status', 'pending_signature')->count(),
-            'paid_invoices'    => Invoice::where('status', 'paid')->count(),
-            'mtd_revenue'      => Payment::where('status', 'completed')->whereMonth('payment_date', now()->month)->sum('amount'),
-        ];
+        $response = $this->api->get('/admin/dashboard');
+        $payload = $this->api->toEntities($response['data'] ?? []);
 
-        $recentTenants = Tenant::with(['subscriptions' => fn($q) => $q->where('status','active')->with('plan')])
-            ->latest()->limit(8)->get();
+        $statsPayload = $payload?->stats;
+        $statsSource = $statsPayload instanceof ApiEntity
+            ? $statsPayload->toArray()
+            : (array) ($statsPayload ?? []);
 
-        $recentTickets = SupportTicket::with(['tenant'])
-            ->whereNotIn('status', ['resolved', 'closed'])
-            ->latest()->limit(6)->get();
+        $stats = array_merge([
+            'total_tenants' => 0,
+            'active_tenants' => 0,
+            'open_tickets' => 0,
+            'urgent_tickets' => 0,
+            'signed_contracts' => 0,
+            'pending_signature' => 0,
+            'paid_invoices' => 0,
+            'mtd_revenue' => 0,
+        ], $statsSource);
+        $recentTenants = $payload?->recent_tenants ?? [];
+        $recentTickets = $payload?->recent_tickets ?? [];
 
         return view('admin.dashboard', compact('stats', 'recentTenants', 'recentTickets'));
     }

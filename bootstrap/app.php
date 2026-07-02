@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Redirect unauthenticated guests to our named login route
+        $middleware->redirectGuestsTo(fn () => route('auth.login'));
+
         $middleware->alias([
             'admin.only'   => \App\Http\Middleware\AdminOnly::class,
             'tenant.scope' => \App\Http\Middleware\TenantScope::class,

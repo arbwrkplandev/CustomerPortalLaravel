@@ -34,19 +34,25 @@
                         </div>
                         <div class="text-right">
                             <div class="text-3xl font-black" style="color: var(--color-brand-primary)">
-                                ${{ number_format($activeSubscription->price_paid ?? $activeSubscription->plan->price_monthly, 0) }}
+                                {{ $activeSubscription->currency ?? 'USD' }} {{ number_format($activeSubscription->amount ?? 0, 2) }}
                             </div>
                             <div class="text-sm" style="color: var(--color-text-secondary)">/ {{ $activeSubscription->billing_cycle ?? 'month' }}</div>
+                            @if($activeSubscription->is_custom_rate)
+                                <div class="text-xs mt-1" style="color: var(--color-text-secondary)">
+                                    Base plan rate: {{ $activeSubscription->currency ?? 'USD' }} {{ number_format($activeSubscription->base_amount ?? 0, 2) }}
+                                </div>
+                                <div class="text-xs" style="color: #f59e0b">Special price applied</div>
+                            @endif
                         </div>
                     </div>
                     <div class="mt-6 grid grid-cols-2 gap-4">
                         <div>
                             <div class="text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-secondary)">Start Date</div>
-                            <div class="font-semibold" style="color: var(--color-text-primary)">{{ $activeSubscription->starts_at ? \Carbon\Carbon::parse($activeSubscription->starts_at)->format('M d, Y') : '—' }}</div>
+                            <div class="font-semibold" style="color: var(--color-text-primary)">{{ $activeSubscription->start_date ? \Carbon\Carbon::parse($activeSubscription->start_date)->format('M d, Y') : '—' }}</div>
                         </div>
                         <div>
                             <div class="text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-secondary)">Renewal Date</div>
-                            <div class="font-semibold" style="color: var(--color-text-primary)">{{ $activeSubscription->ends_at ? \Carbon\Carbon::parse($activeSubscription->ends_at)->format('M d, Y') : 'Ongoing' }}</div>
+                            <div class="font-semibold" style="color: var(--color-text-primary)">{{ $activeSubscription->end_date ? \Carbon\Carbon::parse($activeSubscription->end_date)->format('M d, Y') : 'Ongoing' }}</div>
                         </div>
                     </div>
                     <div class="mt-4">
@@ -87,10 +93,10 @@
                         <a href="{{ route('customer.tickets.create') }}" class="btn btn-outline w-full justify-center">Get Support</a>
                     </div>
                 </div>
-                @if($activeSubscription->ends_at && \Carbon\Carbon::parse($activeSubscription->ends_at)->diffInDays(now()) < 30)
+                @if($activeSubscription->end_date && \Carbon\Carbon::parse($activeSubscription->end_date)->diffInDays(now()) < 30)
                 <div class="card" style="border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.05)">
                     <div class="text-amber-400 font-bold mb-2">⚠️ Renewing Soon</div>
-                    <p class="text-sm" style="color: var(--color-text-secondary)">Your subscription renews on {{ \Carbon\Carbon::parse($activeSubscription->ends_at)->format('M d, Y') }}. Contact your account manager if you wish to make changes.</p>
+                    <p class="text-sm" style="color: var(--color-text-secondary)">Your subscription renews on {{ \Carbon\Carbon::parse($activeSubscription->end_date)->format('M d, Y') }}. Contact your account manager if you wish to make changes.</p>
                 </div>
                 @endif
             </div>

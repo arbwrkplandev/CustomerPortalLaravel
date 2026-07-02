@@ -67,6 +67,16 @@ class ContractController extends Controller
         return $this->success($contract, 'Contract sent to customer');
     }
 
+    public function revokeFromCustomer(Contract $contract): JsonResponse
+    {
+        try {
+            $contract = $this->contractService->revokeFromCustomer($contract);
+            return $this->success($contract, 'Contract revoked — status reset to Draft');
+        } catch (\RuntimeException $e) {
+            return $this->error($e->getMessage(), 422);
+        }
+    }
+
     public function download(Contract $contract, string $type = 'original'): mixed
     {
         $path = $type === 'signed' ? $contract->signed_pdf_path : $contract->original_pdf_path;
@@ -74,5 +84,18 @@ class ContractController extends Controller
             return $this->notFound('PDF not found');
         }
         return Storage::download($path);
+    }
+
+    public function stream(Contract $contract, string $type = 'original'): mixed
+    {
+        $path = $type === 'signed' ? $contract->signed_pdf_path : $contract->original_pdf_path;
+        if (!$path || !Storage::exists($path)) {
+            return $this->notFound('PDF not found');
+        }
+
+        return response()->file(
+            Storage::path($path),
+            ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline']
+        );
     }
 }

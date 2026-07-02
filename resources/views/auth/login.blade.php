@@ -18,10 +18,17 @@
         <form method="POST" action="{{ route('auth.login.post') }}" class="space-y-5">
             @csrf
             <div>
-                <label class="form-label" style="color: rgba(199,210,254,0.7)">Email Address</label>
-                <input type="email" name="email" value="{{ old('email') }}" required
+                <label class="form-label" style="color: rgba(199,210,254,0.7)">Corp ID</label>
+                <input type="text" name="corp_id" value="{{ old('corp_id') }}"
                        class="form-input" style="background: rgba(255,255,255,0.05); border-color: rgba(99,102,241,0.4); color: white"
-                       placeholder="you@company.com">
+                       placeholder="ACME-IND">
+                <p class="text-xs mt-1" style="color: rgba(199,210,254,0.5)">For customer login. Admin can leave this blank.</p>
+            </div>
+            <div>
+                <label class="form-label" style="color: rgba(199,210,254,0.7)">Username or Email</label>
+                <input type="text" name="username_or_email" value="{{ old('username_or_email') }}" required
+                       class="form-input" style="background: rgba(255,255,255,0.05); border-color: rgba(99,102,241,0.4); color: white"
+                       placeholder="john.smith or you@company.com">
             </div>
             <div>
                 <label class="form-label" style="color: rgba(199,210,254,0.7)">Password</label>

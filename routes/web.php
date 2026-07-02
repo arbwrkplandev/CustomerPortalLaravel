@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\Admin\AdminInvoiceController;
 use App\Http\Controllers\Web\Admin\AdminTicketController;
 use App\Http\Controllers\Web\Admin\AdminAnnouncementController;
 use App\Http\Controllers\Web\Admin\AdminAuditController;
+use App\Http\Controllers\Web\Admin\AdminPlanController;
 use App\Http\Controllers\Web\Customer\CustomerDashboardController;
 use App\Http\Controllers\Web\Customer\CustomerContractController;
 use App\Http\Controllers\Web\Customer\CustomerInvoiceController;
@@ -45,6 +46,16 @@ Route::prefix('admin')->middleware(['auth', 'admin.only'])->name('admin.')->grou
     Route::put('/customers/{tenant}', [AdminTenantController::class, 'update'])->name('tenants.update');
     Route::post('/customers/{tenant}/toggle-status', [AdminTenantController::class, 'toggleStatus'])->name('tenants.toggle-status');
     Route::post('/customers/{tenant}/subscription', [AdminTenantController::class, 'assignSubscription'])->name('tenants.assign-subscription');
+    Route::patch('/customers/{tenant}/subscription', [AdminTenantController::class, 'updateSubscription'])->name('tenants.update-subscription');
+    Route::post('/customers/{tenant}/users/{user}/reset-password', [AdminTenantController::class, 'resetUserPassword'])->name('tenants.reset-password');
+
+    // Plans
+    Route::get('/plans', [AdminPlanController::class, 'index'])->name('plans.index');
+    Route::get('/plans/create', [AdminPlanController::class, 'create'])->name('plans.create');
+    Route::post('/plans', [AdminPlanController::class, 'store'])->name('plans.store');
+    Route::get('/plans/{plan}/edit', [AdminPlanController::class, 'edit'])->name('plans.edit');
+    Route::put('/plans/{plan}', [AdminPlanController::class, 'update'])->name('plans.update');
+    Route::post('/plans/{plan}/toggle-status', [AdminPlanController::class, 'toggleStatus'])->name('plans.toggle-status');
 
     // Contracts
     Route::get('/contracts', [AdminContractController::class, 'index'])->name('contracts.index');
@@ -52,6 +63,7 @@ Route::prefix('admin')->middleware(['auth', 'admin.only'])->name('admin.')->grou
     Route::post('/contracts', [AdminContractController::class, 'store'])->name('contracts.store');
     Route::get('/contracts/{contract}', [AdminContractController::class, 'show'])->name('contracts.show');
     Route::post('/contracts/{contract}/send', [AdminContractController::class, 'send'])->name('contracts.send');
+    Route::post('/contracts/{contract}/revoke', [AdminContractController::class, 'revoke'])->name('contracts.revoke');
     Route::get('/contracts/{contract}/download/{type?}', [AdminContractController::class, 'download'])->name('contracts.download');
     Route::get('/contracts/{contract}/stream/{type?}', [AdminContractController::class, 'streamPdf'])->name('contracts.stream');
 

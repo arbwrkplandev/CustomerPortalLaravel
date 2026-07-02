@@ -65,11 +65,41 @@
                             {{ ucfirst($tenant->status) }}
                         </span>
                     </td>
-                    <td class="text-sm" style="color: var(--color-text-muted)">
-                        {{ $tenant->activeSubscription?->plan?->name ?? '—' }}
+                    <td>
+                        @php $sub = $tenant->active_subscription ?? $tenant->activeSubscription ?? null; @endphp
+                        @if($sub && ($sub->plan->name ?? $sub->plan_name ?? null))
+                        <div>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold" style="background: rgba(99,102,241,0.12); color: #6366f1; border: 1px solid rgba(99,102,241,0.25)">
+                                <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                {{ $sub->plan->name ?? $sub->plan_name ?? '—' }}
+                            </span>
+                            @if($sub->is_custom_rate ?? false)
+                            <span class="ml-1 text-xs font-semibold text-amber-500">★</span>
+                            @endif
+                        </div>
+                        <div class="text-xs mt-0.5" style="color:var(--color-text-muted)">
+                            {{ ($sub->currency ?? 'USD') }} {{ number_format($sub->amount ?? 0, 0) }}/{{ $sub->billing_cycle ?? '' }}
+                        </div>
+                        @else
+                        <span class="text-xs px-2 py-0.5 rounded-full" style="background:var(--color-surface-2); color:var(--color-text-muted)">No plan</span>
+                        @endif
                     </td>
                     <td class="text-sm capitalize" style="color: var(--color-text-muted)">
-                        {{ $tenant->activeSubscription?->billing_cycle ?? '—' }}
+                        @php $sub2 = $tenant->active_subscription ?? $tenant->activeSubscription ?? null; @endphp
+                        @if($sub2 && $sub2->billing_cycle)
+                        <span class="inline-flex items-center gap-1">
+                            @if(($sub2->billing_cycle ?? '') === 'monthly')
+                                <span style="color:#6366f1">●</span>
+                            @elseif(($sub2->billing_cycle ?? '') === 'quarterly')
+                                <span style="color:#f59e0b">●</span>
+                            @else
+                                <span style="color:#10b981">●</span>
+                            @endif
+                            {{ ucfirst($sub2->billing_cycle) }}
+                        </span>
+                        @else
+                        —
+                        @endif
                     </td>
                     <td class="text-sm" style="color: var(--color-text-muted)">
                         {{ $tenant->created_at->format('M d, Y') }}

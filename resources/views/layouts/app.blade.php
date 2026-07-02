@@ -9,7 +9,7 @@
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
-</head>
+    <style>[x-cloak] { display: none !important; }</style></head>
 <body class="antialiased" x-data>
     <div class="flex">
         <!-- Sidebar -->

@@ -58,7 +58,7 @@
                     @foreach($invoices as $invoice)
                     <tr>
                         <td><span class="font-mono font-semibold" style="color: var(--color-brand-primary)">{{ $invoice->invoice_number }}</span></td>
-                        <td style="color: var(--color-text-secondary)">{{ $invoice->tenant->name }}</td>
+                        <td style="color: var(--color-text-secondary)">{{ $invoice->tenant->company_name ?? $invoice->tenant->name }}</td>
                         <td><span class="font-bold" style="color: var(--color-text-primary)">${{ number_format($invoice->total_amount, 2) }}</span></td>
                         <td>
                             @if($invoice->status === 'paid') <span class="badge badge-success">Paid</span>

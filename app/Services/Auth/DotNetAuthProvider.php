@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Log;
  * =====================================================
  *
  * DOTNET AUTH API ENDPOINTS EXPECTED:
- * POST /auth/login         -> { email, password } -> session payload
+ * POST /auth/login         -> { identifier/email, password, corp_id } -> session payload
  * POST /auth/logout        -> { session_token }
  * GET  /auth/me            -> session payload
  * GET  /auth/validate      -> { token } -> session payload or 401
@@ -45,7 +45,7 @@ class DotNetAuthProvider implements AuthProviderInterface
         $this->apiKey  = config('wrkplan.auth.dotnet_api_key', '');
     }
 
-    public function attempt(string $email, string $password, bool $remember = false): ?array
+    public function attempt(string $identifier, string $password, bool $remember = false, ?string $corpId = null): ?array
     {
         // TODO: Implement when .NET auth API is ready
         try {
@@ -53,9 +53,11 @@ class DotNetAuthProvider implements AuthProviderInterface
                 'X-API-Key'    => $this->apiKey,
                 'Accept'       => 'application/json',
             ])->post($this->baseUrl . '/auth/login', [
-                'email'    => $email,
-                'password' => $password,
-                'remember' => $remember,
+                'identifier' => $identifier,
+                'email'      => $identifier,
+                'password'   => $password,
+                'remember'   => $remember,
+                'corp_id'    => $corpId,
             ]);
 
             if ($response->successful()) {

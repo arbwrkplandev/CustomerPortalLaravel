@@ -54,6 +54,13 @@ class DashboardController extends Controller
 
         $pendingContracts = \App\Models\Contract::where('tenant_id', $tenantId)
             ->where('status', 'pending_signature')
+            ->with(['tenant'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $signedContracts = \App\Models\Contract::where('tenant_id', $tenantId)
+            ->where('status', 'signed')
             ->count();
 
         $unpaidInvoices = \App\Models\Invoice::where('tenant_id', $tenantId)
@@ -66,12 +73,14 @@ class DashboardController extends Controller
             'announcements'       => $announcements->take(5),
             'stats'               => [
                 'open_tickets'      => $openTickets,
-                'pending_contracts' => $pendingContracts,
+                'pending_contracts' => $pendingContracts->count(),
                 'unpaid_invoices'   => $unpaidInvoices,
+                'signed_contracts'  => $signedContracts,
                 'subscription_days_left' => $activeSubscription
                     ? now()->diffInDays($activeSubscription->end_date, false)
                     : null,
             ],
+            'pending_contract_list' => $pendingContracts,
         ]);
     }
 }

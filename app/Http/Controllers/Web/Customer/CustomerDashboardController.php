@@ -3,47 +3,90 @@
 namespace App\Http\Controllers\Web\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\CustomerSubscription;
-use App\Models\Contract;
-use App\Services\Admin\AnnouncementService;
+use App\Support\InternalApiGateway;
 use Illuminate\Support\Facades\Auth;
+use DateTimeZone;
 
 class CustomerDashboardController extends Controller
 {
-    public function __construct(protected AnnouncementService $announcementService) {}
+    public function __construct(protected InternalApiGateway $api) {}
 
     public function index()
     {
         $user = Auth::user();
-        $tenantId = $user->tenant_id;
 
-        $activeSubscription = CustomerSubscription::where('tenant_id', $tenantId)
-            ->where('status', 'active')
-            ->with('plan')
-            ->latest()
-            ->first();
+        $response = $this->api->get('/customer/dashboard');
+        $payload = $this->api->toEntities($response['data'] ?? []);
 
-        $daysLeft = $activeSubscription
-            ? now()->diffInDays($activeSubscription->end_date, false)
-            : null;
+        $tenant = $payload?->tenant ?? $user->tenant;
+        $activeSubscription = $payload?->active_subscription;
+        $announcements = collect($payload?->announcements ?? []);
+        $pendingContracts = collect($payload?->pending_contract_list ?? []);
+        $stats = array_merge([
+            'open_tickets' => 0,
+            'pending_contracts' => 0,
+            'unpaid_invoices' => 0,
+            'signed_contracts' => 0,
+            'subscription_days_left' => null,
+        ], $payload?->stats instanceof \App\Support\ApiEntity ? $payload->stats->toArray() : (array) ($payload?->stats ?? []));
 
-        $planSlug = $activeSubscription?->plan?->slug;
-        $announcements = $this->announcementService->getForTenant($tenantId, $planSlug);
+        $daysLeft = $stats['subscription_days_left'] ?? null;
 
-        $pendingContracts = Contract::where('tenant_id', $tenantId)
-            ->where('status', 'pending_signature')
-            ->get();
-
-        $stats = [
-            'open_tickets'      => \App\Models\SupportTicket::where('tenant_id', $tenantId)->whereNotIn('status', ['resolved', 'closed'])->count(),
-            'pending_contracts' => $pendingContracts->count(),
-            'unpaid_invoices'   => \App\Models\Invoice::where('tenant_id', $tenantId)->whereIn('status', ['sent', 'overdue'])->count(),
-            'signed_contracts'  => Contract::where('tenant_id', $tenantId)->where('status', 'signed')->count(),
-        ];
+        $timezone = $this->resolveTimezone($tenant?->timezone, $tenant?->country);
+        $localNow = now()->setTimezone($timezone);
+        $greeting = $this->resolveGreeting($localNow->hour);
+        $motivation = $this->dailyMotivation();
 
         return view('customer.dashboard', compact(
             'activeSubscription', 'daysLeft', 'announcements',
-            'pendingContracts', 'stats'
+            'pendingContracts', 'stats', 'tenant', 'localNow', 'timezone', 'greeting', 'motivation'
         ));
+    }
+
+    protected function resolveTimezone(?string $timezone, ?string $country): string
+    {
+        if (!empty($timezone) && in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
+            return $timezone;
+        }
+
+        $country = strtolower(trim((string) $country));
+        $timezoneMap = [
+            'india' => 'Asia/Kolkata',
+            'usa' => 'America/New_York',
+            'united states' => 'America/New_York',
+            'us' => 'America/New_York',
+            'uk' => 'Europe/London',
+            'united kingdom' => 'Europe/London',
+            'canada' => 'America/Toronto',
+            'australia' => 'Australia/Sydney',
+            'singapore' => 'Asia/Singapore',
+        ];
+
+        return $timezoneMap[$country] ?? 'UTC';
+    }
+
+    protected function resolveGreeting(int $hour): string
+    {
+        return match (true) {
+            $hour < 12 => 'Good morning',
+            $hour < 17 => 'Good afternoon',
+            $hour < 21 => 'Good evening',
+            default => 'Good night',
+        };
+    }
+
+    protected function dailyMotivation(): string
+    {
+        $messages = [
+            'Consistency beats intensity. Small progress today builds big outcomes tomorrow.',
+            'Focus on what you can control, then execute with clarity.',
+            'Every challenge you solve today becomes confidence for tomorrow.',
+            'Progress compounds. One disciplined day at a time.',
+            'Your future results are hidden in your daily habits. Keep going.',
+            'Do the next right thing, then repeat.',
+            'Momentum is built by starting before you feel ready.',
+        ];
+
+        return $messages[(int) now()->dayOfYear % count($messages)];
     }
 }

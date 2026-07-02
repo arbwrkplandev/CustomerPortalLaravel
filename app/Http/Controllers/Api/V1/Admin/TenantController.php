@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiResponse;
 use App\Services\Admin\TenantService;
 use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -52,21 +53,36 @@ class TenantController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'company_name'  => 'required|string|max:255',
+            'corp_id'       => 'required|string|max:30|alpha_dash|unique:tenants,corp_id',
             'contact_name'  => 'required|string|max:255',
-            'contact_email' => 'required|email|unique:tenants,contact_email|unique:users,email',
+            'contact_email' => 'required|email|unique:tenants,contact_email',
+            'user_email'    => 'required|email|unique:users,email',
+            'username'      => 'required|string|min:3|max:50|alpha_dash|unique:users,username',
             'contact_phone' => 'nullable|string|max:30',
             'address'       => 'nullable|string',
             'city'          => 'nullable|string|max:100',
             'country'       => 'nullable|string|max:100',
+            'timezone'      => 'nullable|string|max:60',
             'status'        => 'nullable|in:active,inactive,trial',
+            'contact_password' => 'nullable|string|min:6',
             'password'      => 'nullable|string|min:6',
+            'plan_id'       => 'nullable|exists:plans,id',
+            'billing_cycle' => 'nullable|in:monthly,quarterly,annual',
+            'custom_rate'   => 'nullable|numeric|min:0',
+            'currency'      => 'nullable|string|size:3',
         ]);
 
         if ($validator->fails()) {
             return $this->validationError($validator->errors());
         }
 
-        $tenant = $this->tenantService->create($request->validated());
+        $payload = $validator->validated();
+
+        if (!isset($payload['contact_password']) && isset($payload['password'])) {
+            $payload['contact_password'] = $payload['password'];
+        }
+
+        $tenant = $this->tenantService->create($payload);
         return $this->created($tenant, 'Customer created successfully');
     }
 
@@ -79,7 +95,7 @@ class TenantController extends Controller
     public function show(int $id): JsonResponse
     {
         $tenant = Tenant::with([
-            'users', 'subscriptions.plan', 'contracts', 'invoices'
+            'users', 'subscriptions.plan', 'activeSubscription.plan', 'contracts', 'invoices'
         ])->findOrFail($id);
         return $this->success($tenant);
     }
@@ -137,6 +153,8 @@ class TenantController extends Controller
             'plan_id'      => 'required|exists:plans,id',
             'billing_cycle' => 'required|in:monthly,quarterly,annual',
             'start_date'   => 'nullable|date',
+            'custom_rate'  => 'nullable|numeric|min:0',
+            'currency'     => 'nullable|string|size:3',
             'notes'        => 'nullable|string',
         ]);
 
@@ -146,5 +164,59 @@ class TenantController extends Controller
 
         $subscription = $this->tenantService->assignSubscription($tenant, $request->all());
         return $this->created($subscription, 'Subscription assigned successfully');
+    }
+
+    /**
+     * @OA\Patch(path="/api/v1/admin/tenants/{id}/subscription", tags={"Admin - Tenants"}, summary="Update active subscription (rate/plan/cycle)",
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\RequestBody(required=true, @OA\JsonContent(
+     *     @OA\Property(property="plan_id", type="integer", description="New plan (triggers plan change)"),
+     *     @OA\Property(property="billing_cycle", type="string", example="monthly"),
+     *     @OA\Property(property="custom_rate", type="number", description="Override amount; null to revert to plan default"),
+     *     @OA\Property(property="currency", type="string", example="USD"),
+     *     @OA\Property(property="notes", type="string")
+     *   )),
+     *   @OA\Response(response=200, description="Subscription updated")
+     * )
+     */
+    public function updateSubscription(Request $request, Tenant $tenant): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'plan_id'       => 'nullable|exists:plans,id',
+            'billing_cycle' => 'nullable|in:monthly,quarterly,annual',
+            'custom_rate'   => 'nullable|numeric|min:0',
+            'currency'      => 'nullable|string|size:3',
+            'notes'         => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        $subscription = $this->tenantService->updateSubscription($tenant, $request->all());
+        return $this->success($subscription, 'Subscription updated successfully');
+    }
+
+    public function resetUserPassword(Request $request, Tenant $tenant, User $user): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        if ((int) $user->tenant_id !== (int) $tenant->id) {
+            return $this->notFound('User not found for this tenant');
+        }
+
+        $updatedUser = $this->tenantService->resetUserPassword(
+            $tenant,
+            $user,
+            $request->string('new_password')->toString()
+        );
+
+        return $this->success($updatedUser, 'Password updated successfully');
     }
 }

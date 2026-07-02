@@ -42,10 +42,10 @@
                         @if($invoice->line_items)
                             @foreach($invoice->line_items as $item)
                             <tr>
-                                <td>{{ $item['description'] ?? 'Service' }}</td>
-                                <td class="text-right">{{ $item['quantity'] ?? 1 }}</td>
-                                <td class="text-right">${{ number_format($item['unit_price'] ?? 0, 2) }}</td>
-                                <td class="text-right font-semibold">${{ number_format($item['amount'] ?? 0, 2) }}</td>
+                                <td>{{ $item->description ?? 'Service' }}</td>
+                                <td class="text-right">{{ $item->quantity ?? 1 }}</td>
+                                <td class="text-right">${{ number_format($item->unit_price ?? 0, 2) }}</td>
+                                <td class="text-right font-semibold">${{ number_format($item->amount ?? 0, 2) }}</td>
                             </tr>
                             @endforeach
                         @endif

@@ -3,32 +3,39 @@
 namespace App\Http\Controllers\Web\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Invoice;
-use App\Services\Admin\InvoiceService;
-use Illuminate\Support\Facades\Auth;
+use App\Support\InternalApiGateway;
 
 class CustomerInvoiceController extends Controller
 {
-    public function __construct(protected InvoiceService $invoiceService) {}
+    public function __construct(protected InternalApiGateway $api) {}
 
     public function index()
     {
-        $invoices = Invoice::where('tenant_id', Auth::user()->tenant_id)
-            ->with(['subscription.plan'])->latest()->paginate(10);
+        $response = $this->api->get('/customer/invoices', [
+            'per_page' => 10,
+            'page' => request()->integer('page', 1),
+            'status' => request()->query('status'),
+        ]);
+
+        $invoices = $this->api->toPaginator($response, 10);
+
         return view('customer.invoices.index', compact('invoices'));
     }
 
-    public function show(Invoice $invoice)
+    public function show(int $invoice)
     {
-        abort_unless($invoice->tenant_id === Auth::user()->tenant_id, 403);
-        $invoice->load(['subscription.plan', 'payments', 'tenant']);
+        $response = $this->api->get('/customer/invoices/' . $invoice);
+        if (!($response['success'] ?? false)) {
+            abort(404);
+        }
+
+        $invoice = $this->api->toEntities($response['data'] ?? []);
+
         return view('customer.invoices.show', compact('invoice'));
     }
 
-    public function download(Invoice $invoice)
+    public function download(int $invoice)
     {
-        abort_unless($invoice->tenant_id === Auth::user()->tenant_id, 403);
-        $path = $this->invoiceService->generatePdf($invoice);
-        return \Illuminate\Support\Facades\Storage::download($path);
+        return redirect('/api/v1/customer/invoices/' . $invoice . '/download');
     }
 }

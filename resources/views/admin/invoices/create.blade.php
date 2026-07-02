@@ -35,7 +35,7 @@
                     <select name="tenant_id" class="form-input" required>
                         <option value="">Select customer</option>
                         @foreach($tenants as $tenant)
-                        <option value="{{ $tenant->id }}" {{ old('tenant_id') == $tenant->id ? 'selected' : '' }}>{{ $tenant->name }}</option>
+                        <option value="{{ $tenant->id }}" {{ old('tenant_id') == $tenant->id ? 'selected' : '' }}>{{ $tenant->company_name ?? $tenant->name }}</option>
                         @endforeach
                     </select>
                 </div>

@@ -12,7 +12,7 @@
         <a href="{{ route('admin.invoices.index') }}" class="btn btn-outline">← Invoices</a>
         <div class="flex-1">
             <h1 class="text-2xl font-black" style="color: var(--color-text-primary)">{{ $invoice->invoice_number }}</h1>
-            <p class="mt-1" style="color: var(--color-text-secondary)">{{ $invoice->tenant->name }}</p>
+            <p class="mt-1" style="color: var(--color-text-secondary)">{{ $invoice->tenant->company_name ?? $invoice->tenant->name }}</p>
         </div>
         <div class="flex gap-2">
             <a href="{{ route('admin.invoices.pdf', $invoice) }}" class="btn btn-outline">⬇️ PDF</a>

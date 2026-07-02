@@ -30,9 +30,15 @@ class SupportTicketController extends Controller
 
     public function show(SupportTicket $supportTicket): JsonResponse
     {
-        return $this->success(
-            $supportTicket->load(['tenant', 'creator', 'assignee', 'messages.sender'])
-        );
+        $ticket = $supportTicket->load(['tenant', 'creator', 'assignee', 'messages.sender']);
+        $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])
+            ->where('is_active', true)
+            ->get(['id', 'name', 'email']);
+
+        return $this->success([
+            'ticket' => $ticket,
+            'admins' => $admins,
+        ]);
     }
 
     public function reply(Request $request, SupportTicket $supportTicket): JsonResponse

@@ -3,28 +3,32 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
+use App\Support\InternalApiGateway;
 use Illuminate\Http\Request;
 
 class AdminAuditController extends Controller
 {
+    public function __construct(protected InternalApiGateway $api) {}
+
     public function index(Request $request)
     {
-        $query = AuditLog::with(['user', 'tenant']);
+        $response = $this->api->get('/admin/audit', [
+            'search' => $request->query('search'),
+            'module' => $request->query('module'),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+            'per_page' => 20,
+            'page' => $request->integer('page', 1),
+        ]);
 
-        if ($s = $request->search) {
-            $query->where(function ($q) use ($s) {
-                $q->where('action', 'like', "%$s%")
-                  ->orWhere('module', 'like', "%$s%")
-                  ->orWhere('description', 'like', "%$s%");
-            });
-        }
-        if ($m = $request->module) $query->where('module', $m);
-        if ($f = $request->date_from) $query->whereDate('created_at', '>=', $f);
-        if ($t = $request->date_to) $query->whereDate('created_at', '<=', $t);
+        $logs = $this->api->toPaginator($response, 20);
+        $modules = collect($logs->items())
+            ->pluck('module')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
 
-        $logs = $query->latest()->paginate(20);
-        $modules = AuditLog::distinct()->pluck('module');
         return view('admin.audit.index', compact('logs', 'modules'));
     }
 }

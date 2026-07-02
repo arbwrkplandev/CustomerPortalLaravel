@@ -10,6 +10,30 @@
   --color-brand-warning: #f59e0b;
   --color-brand-danger: #ef4444;
 
+  /* Compatibility aliases used across Blade views */
+  --color-text-primary: var(--color-text);
+  --color-text-secondary: var(--color-text-muted);
+  --color-surface-2: #e2e8f0;
+  --color-success: var(--color-brand-success);
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* Gray palette aliases used in legacy components */
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+
+  /* Blue palette aliases used in legacy components */
+  --color-blue-300: #93c5fd;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+
   /* Light Mode */
   --color-bg: #f8fafc;
   --color-surface: #ffffff;
@@ -34,6 +58,28 @@
   --color-sidebar-text: #c7d2fe;
   --color-sidebar-active: #818cf8;
   --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+
+  /* Dark-mode compatibility aliases */
+  --color-text-primary: var(--color-text);
+  --color-text-secondary: var(--color-text-muted);
+  --color-surface-2: #475569;
+  --color-success: var(--color-brand-success);
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+
+  --color-blue-300: #93c5fd;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
 }
 
 /* Custom RGB theme via CSS variable */

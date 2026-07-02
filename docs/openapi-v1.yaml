@@ -1,0 +1,586 @@
+openapi: 3.0.3
+info:
+  title: WrkPlan API
+  version: 1.0.0
+  description: API contract for Laravel-to-.NET migration.
+servers:
+  - url: /api/v1
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: wrkplan_session
+  schemas:
+    ApiEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+    LoginRequest:
+      type: object
+      required: [password]
+      properties:
+        login:
+          type: string
+          example: john.smith
+        email:
+          type: string
+          example: john@acme.com
+        password:
+          type: string
+        corp_id:
+          type: string
+          example: ACME-IND
+        remember:
+          type: boolean
+    TenantCreateRequest:
+      type: object
+      required: [company_name, corp_id, contact_name, contact_email, user_email, username]
+      properties:
+        company_name: { type: string }
+        corp_id: { type: string }
+        contact_name: { type: string }
+        contact_email: { type: string }
+        user_email: { type: string }
+        username: { type: string }
+        contact_password: { type: string }
+        contact_phone: { type: string }
+        address: { type: string }
+        city: { type: string }
+        country: { type: string }
+        timezone: { type: string }
+        status: { type: string, enum: [active, inactive, trial] }
+        plan_id: { type: integer }
+        billing_cycle: { type: string, enum: [monthly, quarterly, annual] }
+        custom_rate: { type: number, format: double }
+        currency: { type: string }
+    SubscriptionAssignRequest:
+      type: object
+      required: [plan_id, billing_cycle]
+      properties:
+        plan_id: { type: integer }
+        billing_cycle: { type: string, enum: [monthly, quarterly, annual] }
+        start_date: { type: string, format: date }
+        custom_rate: { type: number, format: double }
+        currency: { type: string, example: USD }
+        notes: { type: string }
+    PlanWriteRequest:
+      type: object
+      required: [name, monthly_price, quarterly_price, annual_price]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        monthly_price: { type: number, format: double }
+        quarterly_price: { type: number, format: double }
+        annual_price: { type: number, format: double }
+        max_users: { type: integer }
+        sort_order: { type: integer }
+        is_active: { type: boolean }
+        features:
+          type: array
+          items: { type: string }
+    ResetPasswordRequest:
+      type: object
+      required: [new_password, new_password_confirmation]
+      properties:
+        new_password: { type: string }
+        new_password_confirmation: { type: string }
+security:
+  - sessionAuth: []
+paths:
+  /auth/login:
+    post:
+      summary: Login with username/email and optional corp_id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login success
+  /auth/logout:
+    post:
+      summary: Logout current session
+      responses:
+        '200': { description: Logout success }
+  /auth/me:
+    get:
+      summary: Current user payload
+      responses:
+        '200': { description: Success }
+  /admin/dashboard:
+    get:
+      summary: Admin dashboard stats and recent entities
+      responses:
+        '200': { description: Success }
+  /admin/tenants:
+    get:
+      summary: Paginated tenant list
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: per_page
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+    post:
+      summary: Create tenant and optional initial subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreateRequest'
+      responses:
+        '201': { description: Created }
+  /admin/tenants/{tenant}:
+    get:
+      summary: Tenant details
+      parameters:
+        - in: path
+          name: tenant
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+    put:
+      summary: Update tenant
+      parameters:
+        - in: path
+          name: tenant
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Updated }
+  /admin/tenants/{tenant}/toggle-status:
+    post:
+      summary: Toggle tenant active/inactive status
+      parameters:
+        - in: path
+          name: tenant
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Updated }
+  /admin/tenants/{tenant}/assign-subscription:
+    post:
+      summary: Assign subscription with optional custom rate
+      parameters:
+        - in: path
+          name: tenant
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionAssignRequest'
+      responses:
+        '201': { description: Created }
+  /admin/tenants/{tenant}/users/{user}/reset-password:
+    post:
+      summary: Reset tenant user password
+      parameters:
+        - in: path
+          name: tenant
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: user
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200': { description: Updated }
+  /admin/plans:
+    get:
+      summary: List plans
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: is_active
+          schema: { type: boolean }
+        - in: query
+          name: per_page
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+    post:
+      summary: Create plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanWriteRequest'
+      responses:
+        '201': { description: Created }
+  /admin/plans/{plan}:
+    get:
+      summary: Plan details
+      parameters:
+        - in: path
+          name: plan
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+    put:
+      summary: Update plan
+      parameters:
+        - in: path
+          name: plan
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanWriteRequest'
+      responses:
+        '200': { description: Updated }
+  /admin/plans/{plan}/toggle-status:
+    post:
+      summary: Toggle plan status
+      parameters:
+        - in: path
+          name: plan
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Updated }
+  /admin/contracts:
+    get:
+      summary: List contracts
+      responses:
+        '200': { description: Success }
+    post:
+      summary: Create contract
+      responses:
+        '201': { description: Created }
+  /admin/contracts/{contract}:
+    get:
+      summary: Contract details
+      parameters:
+        - in: path
+          name: contract
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+  /admin/contracts/{contract}/send:
+    post:
+      summary: Send contract to customer
+      parameters:
+        - in: path
+          name: contract
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Sent }
+  /admin/contracts/{contract}/download/{type}:
+    get:
+      summary: Download contract PDF
+      parameters:
+        - in: path
+          name: contract
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: type
+          required: false
+          schema: { type: string }
+      responses:
+        '200': { description: File }
+  /admin/invoices:
+    get:
+      summary: List invoices
+      responses:
+        '200': { description: Success }
+    post:
+      summary: Create invoice
+      responses:
+        '201': { description: Created }
+  /admin/invoices/{invoice}:
+    get:
+      summary: Invoice details
+      parameters:
+        - in: path
+          name: invoice
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+  /admin/invoices/{invoice}/payment:
+    post:
+      summary: Record invoice payment
+      parameters:
+        - in: path
+          name: invoice
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Recorded }
+  /admin/invoices/{invoice}/download-pdf:
+    get:
+      summary: Download invoice PDF
+      parameters:
+        - in: path
+          name: invoice
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: File }
+  /admin/tickets:
+    get:
+      summary: List support tickets
+      responses:
+        '200': { description: Success }
+  /admin/tickets/{supportTicket}:
+    get:
+      summary: Ticket details
+      parameters:
+        - in: path
+          name: supportTicket
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+  /admin/tickets/{supportTicket}/reply:
+    post:
+      summary: Reply to support ticket
+      parameters:
+        - in: path
+          name: supportTicket
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Replied }
+  /admin/tickets/{supportTicket}/status:
+    patch:
+      summary: Update support ticket status
+      parameters:
+        - in: path
+          name: supportTicket
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Updated }
+  /admin/tickets/{supportTicket}/assign:
+    patch:
+      summary: Assign support ticket
+      parameters:
+        - in: path
+          name: supportTicket
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Updated }
+  /admin/announcements:
+    get:
+      summary: List announcements
+      responses:
+        '200': { description: Success }
+    post:
+      summary: Create announcement
+      responses:
+        '201': { description: Created }
+  /admin/announcements/{announcement}:
+    put:
+      summary: Update announcement
+      parameters:
+        - in: path
+          name: announcement
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Updated }
+    delete:
+      summary: Delete announcement
+      parameters:
+        - in: path
+          name: announcement
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Deleted }
+  /admin/announcements/{announcement}/toggle-publish:
+    post:
+      summary: Toggle announcement publish status
+      parameters:
+        - in: path
+          name: announcement
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Updated }
+  /admin/audit:
+    get:
+      summary: Paginated audit logs
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: module
+          schema: { type: string }
+        - in: query
+          name: date_from
+          schema: { type: string, format: date }
+        - in: query
+          name: date_to
+          schema: { type: string, format: date }
+        - in: query
+          name: per_page
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+  /customer/dashboard:
+    get:
+      summary: Customer dashboard summary
+      responses:
+        '200': { description: Success }
+  /customer/subscription:
+    get:
+      summary: Active subscription
+      responses:
+        '200': { description: Success }
+  /customer/plans:
+    get:
+      summary: List active plans
+      responses:
+        '200': { description: Success }
+  /customer/invoices:
+    get:
+      summary: List customer invoices
+      responses:
+        '200': { description: Success }
+  /customer/invoices/{id}:
+    get:
+      summary: Customer invoice detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+  /customer/invoices/{id}/download:
+    get:
+      summary: Download customer invoice
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: File }
+  /customer/renewal-preview:
+    get:
+      summary: Renewal preview
+      responses:
+        '200': { description: Success }
+  /customer/contracts:
+    get:
+      summary: Customer contracts
+      responses:
+        '200': { description: Success }
+  /customer/contracts/{id}:
+    get:
+      summary: Customer contract details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+  /customer/contracts/{id}/sign:
+    post:
+      summary: Sign contract
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Signed }
+  /customer/contracts/{id}/upload-signed:
+    post:
+      summary: Upload signed contract
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Uploaded }
+  /customer/contracts/{id}/download/{type}:
+    get:
+      summary: Download contract copy
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: type
+          required: false
+          schema: { type: string }
+      responses:
+        '200': { description: File }
+  /customer/tickets:
+    get:
+      summary: Customer tickets list
+      responses:
+        '200': { description: Success }
+    post:
+      summary: Create customer ticket
+      responses:
+        '201': { description: Created }
+  /customer/tickets/{id}:
+    get:
+      summary: Customer ticket details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+  /customer/tickets/{id}/reply:
+    post:
+      summary: Reply to customer ticket
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Replied }
+  /health:
+    get:
+      summary: API health
+      responses:
+        '200': { description: OK }

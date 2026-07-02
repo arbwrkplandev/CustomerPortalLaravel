@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Edit ' . $tenant->name)
+@section('title', 'Edit ' . ($tenant->company_name ?? $tenant->name))
 @section('portal-name', 'Admin Hub')
 
 @section('sidebar-nav')
@@ -12,7 +12,7 @@
         <a href="{{ route('admin.tenants.show', $tenant) }}" class="btn btn-outline">← Back</a>
         <div>
             <h1 class="text-3xl font-black" style="color: var(--color-text-primary)">Edit Customer</h1>
-            <p class="mt-1" style="color: var(--color-text-secondary)">{{ $tenant->name }}</p>
+            <p class="mt-1" style="color: var(--color-text-secondary)">{{ $tenant->company_name ?? $tenant->name }}</p>
         </div>
     </div>
 
@@ -31,7 +31,7 @@
             @csrf @method('PUT')
             <div>
                 <label class="form-label">Company Name <span class="text-red-400">*</span></label>
-                <input type="text" name="name" value="{{ old('name', $tenant->name) }}" required class="form-input">
+                <input type="text" name="name" value="{{ old('name', $tenant->company_name ?? $tenant->name) }}" required class="form-input">
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

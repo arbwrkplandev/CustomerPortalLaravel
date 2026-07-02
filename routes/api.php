@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Admin\TenantController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\ContractController as AdminContractController;
 use App\Http\Controllers\Api\V1\Admin\InvoiceController;
 use App\Http\Controllers\Api\V1\Admin\SupportTicketController as AdminSupportTicketController;
 use App\Http\Controllers\Api\V1\Admin\AnnouncementController;
+use App\Http\Controllers\Api\V1\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Api\V1\Admin\AuditController as AdminAuditController;
 use App\Http\Controllers\Api\V1\Customer\DashboardController;
 use App\Http\Controllers\Api\V1\Customer\ContractController as CustomerContractController;
 use App\Http\Controllers\Api\V1\Customer\SupportTicketController as CustomerSupportTicketController;
@@ -36,6 +39,9 @@ Route::prefix('v1')->group(function () {
     // ─────────────────────────────────────────
     Route::prefix('admin')->middleware(['auth', 'admin.only'])->group(function () {
 
+        // Admin Dashboard
+        Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+
         // Tenant / Customer Management
         Route::get('/tenants', [TenantController::class, 'index']);
         Route::post('/tenants', [TenantController::class, 'store']);
@@ -43,13 +49,24 @@ Route::prefix('v1')->group(function () {
         Route::put('/tenants/{tenant}', [TenantController::class, 'update']);
         Route::post('/tenants/{tenant}/toggle-status', [TenantController::class, 'toggleStatus']);
         Route::post('/tenants/{tenant}/assign-subscription', [TenantController::class, 'assignSubscription']);
+        Route::patch('/tenants/{tenant}/subscription', [TenantController::class, 'updateSubscription']);
+        Route::post('/tenants/{tenant}/users/{user}/reset-password', [TenantController::class, 'resetUserPassword']);
+
+        // Plan Management
+        Route::get('/plans', [AdminPlanController::class, 'index']);
+        Route::post('/plans', [AdminPlanController::class, 'store']);
+        Route::get('/plans/{plan}', [AdminPlanController::class, 'show']);
+        Route::put('/plans/{plan}', [AdminPlanController::class, 'update']);
+        Route::post('/plans/{plan}/toggle-status', [AdminPlanController::class, 'toggleStatus']);
 
         // Contracts
         Route::get('/contracts', [AdminContractController::class, 'index']);
         Route::post('/contracts', [AdminContractController::class, 'store']);
         Route::get('/contracts/{contract}', [AdminContractController::class, 'show']);
         Route::post('/contracts/{contract}/send', [AdminContractController::class, 'sendToCustomer']);
+        Route::post('/contracts/{contract}/revoke', [AdminContractController::class, 'revokeFromCustomer']);
         Route::get('/contracts/{contract}/download/{type?}', [AdminContractController::class, 'download']);
+        Route::get('/contracts/{contract}/stream/{type?}', [AdminContractController::class, 'stream']);
 
         // Invoices & Payments
         Route::get('/invoices', [InvoiceController::class, 'index']);
@@ -68,9 +85,13 @@ Route::prefix('v1')->group(function () {
         // Announcements
         Route::get('/announcements', [AnnouncementController::class, 'index']);
         Route::post('/announcements', [AnnouncementController::class, 'store']);
+        Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show']);
         Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
         Route::post('/announcements/{announcement}/toggle-publish', [AnnouncementController::class, 'togglePublish']);
         Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+
+        // Audit Logs
+        Route::get('/audit', [AdminAuditController::class, 'index']);
     });
 
     // ─────────────────────────────────────────
@@ -95,6 +116,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/contracts/{id}/sign', [CustomerContractController::class, 'sign']);
         Route::post('/contracts/{id}/upload-signed', [CustomerContractController::class, 'uploadSigned']);
         Route::get('/contracts/{id}/download/{type?}', [CustomerContractController::class, 'download']);
+        Route::get('/contracts/{id}/stream/{type?}', [CustomerContractController::class, 'stream']);
 
         // Support Tickets
         Route::get('/tickets', [CustomerSupportTicketController::class, 'index']);
