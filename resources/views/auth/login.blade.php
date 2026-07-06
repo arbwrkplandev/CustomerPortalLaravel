@@ -73,9 +73,25 @@
             </div>
             <div>
                 <label class="form-label" style="color: rgba(199,210,254,0.7)">Password</label>
-                <input type="password" name="password" required
-                       class="form-input" style="background: rgba(255,255,255,0.05); border-color: {{ $errors->has('password') ? 'rgba(248,113,113,0.8)' : 'rgba(99,102,241,0.4)' }}; color: white"
-                       placeholder="••••••••">
+                <div x-data="{ showPassword: false }" class="relative">
+                    <input :type="showPassword ? 'text' : 'password'" name="password" required
+                           class="form-input pr-12" style="background: rgba(255,255,255,0.05); border-color: {{ $errors->has('password') ? 'rgba(248,113,113,0.8)' : 'rgba(99,102,241,0.4)' }}; color: white"
+                           placeholder="••••••••">
+                    <button type="button"
+                            @click="showPassword = !showPassword"
+                            class="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg transition hover:bg-white/10"
+                            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                            :title="showPassword ? 'Hide password' : 'Show password'"
+                            style="color: rgba(199,210,254,0.72)">
+                        <svg x-show="!showPassword" x-cloak class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <svg x-show="showPassword" x-cloak class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 012.104-3.368m2.19-1.997A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.97 9.97 0 01-4.132 5.411M15 12a3 3 0 00-3-3m0 0a2.99 2.99 0 00-2.12.879M12 9l-8 8m8-8l8 8"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2 cursor-pointer">
