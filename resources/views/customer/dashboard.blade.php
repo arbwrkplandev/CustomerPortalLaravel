@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('portal-name', 'Customer Portal')
 @section('page-title', 'My Dashboard')
-@section('page-subtitle', 'Welcome back, {{ auth()->user()->name }}')
+@section('page-subtitle')Welcome back, {{ auth()->user()->name }}@endsection
 
 @section('sidebar-nav')
 @php $route = request()->route()->getName(); @endphp
