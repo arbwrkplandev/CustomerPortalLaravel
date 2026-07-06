@@ -33,7 +33,30 @@ class LoginController extends Controller
         ]);
 
         if (!($response['success'] ?? false)) {
-            return back()->withErrors(['username_or_email' => 'Invalid credentials. Check Corp ID, username/email, and password.'])->withInput();
+            $message = (string) ($response['message'] ?? 'Sign in failed. Please try again.');
+            $messageLower = strtolower($message);
+
+            $popup = [
+                'type' => 'error',
+                'title' => 'Sign-in failed',
+                'message' => $message,
+            ];
+
+            if (str_contains($messageLower, 'corp id')) {
+                $popup['type'] = 'warning';
+                $popup['title'] = 'Corp ID required';
+            } elseif (str_contains($messageLower, 'not registered')) {
+                $popup['type'] = 'info';
+                $popup['title'] = 'Customer not registered';
+            } elseif (str_contains($messageLower, 'wrong password')) {
+                $popup['type'] = 'error';
+                $popup['title'] = 'Wrong password';
+            }
+
+            return back()
+                ->withErrors(['username_or_email' => $message])
+                ->withInput($request->except('password'))
+                ->with('auth_popup', $popup);
         }
 
         $payload = $response['data'] ?? [];

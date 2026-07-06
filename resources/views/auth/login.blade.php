@@ -1,4 +1,52 @@
 <x-layouts.auth>
+    @php
+        $authPopup = session('auth_popup');
+        if (!$authPopup && $errors->any()) {
+            $authPopup = [
+                'type' => 'error',
+                'title' => 'Sign-in failed',
+                'message' => $errors->first(),
+            ];
+        }
+    @endphp
+
+    @if($authPopup)
+        <div
+            x-data="{ open: true }"
+            x-init="setTimeout(() => open = false, 5200)"
+            x-show="open"
+            x-transition:enter="transition ease-out duration-500"
+            x-transition:enter-start="opacity-0 -translate-y-6 scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 -translate-y-4 scale-95"
+            class="fixed top-6 left-1/2 z-50 w-[min(92vw,30rem)] -translate-x-1/2"
+            x-cloak
+        >
+            <div class="rounded-2xl border px-5 py-4 shadow-2xl backdrop-blur-xl"
+                 style="background: rgba(15,23,42,0.88); border-color: {{ match($authPopup['type'] ?? 'info') { 'error' => 'rgba(248,113,113,0.45)', 'warning' => 'rgba(251,191,36,0.45)', 'info' => 'rgba(96,165,250,0.45)', default => 'rgba(96,165,250,0.45)' } }}; box-shadow: 0 30px 80px rgba(15,23,42,0.45);">
+                <div class="flex items-start gap-4">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                         style="background: {{ match($authPopup['type'] ?? 'info') { 'error' => 'linear-gradient(135deg, rgba(239,68,68,0.28), rgba(248,113,113,0.18))', 'warning' => 'linear-gradient(135deg, rgba(245,158,11,0.28), rgba(251,191,36,0.18))', 'info' => 'linear-gradient(135deg, rgba(59,130,246,0.28), rgba(96,165,250,0.18))', default => 'linear-gradient(135deg, rgba(59,130,246,0.28), rgba(96,165,250,0.18))' } }};">
+                        <svg class="h-5 w-5" style="color: {{ match($authPopup['type'] ?? 'info') { 'error' => '#fca5a5', 'warning' => '#fcd34d', 'info' => '#93c5fd', default => '#93c5fd' } }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M10.29 3.86l-7.15 12.4A2 2 0 004.86 19h14.28a2 2 0 001.72-3.01l-7.15-12.4a2 2 0 00-3.46 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-black uppercase tracking-[0.18em]" style="color: rgba(199,210,254,0.72)">{{ $authPopup['title'] ?? 'Notice' }}</div>
+                        <p class="mt-1 text-sm leading-6 text-white">{{ $authPopup['message'] ?? 'Please try again.' }}</p>
+                    </div>
+                    <button type="button" @click="open = false" class="rounded-full p-2 text-slate-300 transition hover:bg-white/10 hover:text-white" aria-label="Close notification">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="card animate-fadeInUp" style="background: rgba(30,27,75,0.8); backdrop-filter: blur(20px); border: 1px solid rgba(99,102,241,0.3)">
         <!-- Logo -->
         <div class="text-center mb-8">
@@ -8,32 +56,25 @@
             <p class="text-sm mt-1" style="color: rgba(199,210,254,0.7)">Customer & Admin Platform</p>
         </div>
 
-        <!-- Error -->
-        @if($errors->any())
-            <div class="mb-4 p-3 rounded-xl" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3)">
-                <p class="text-red-400 text-sm">{{ $errors->first() }}</p>
-            </div>
-        @endif
-
         <form method="POST" action="{{ route('auth.login.post') }}" class="space-y-5">
             @csrf
             <div>
                 <label class="form-label" style="color: rgba(199,210,254,0.7)">Corp ID</label>
                 <input type="text" name="corp_id" value="{{ old('corp_id') }}"
-                       class="form-input" style="background: rgba(255,255,255,0.05); border-color: rgba(99,102,241,0.4); color: white"
+                       class="form-input" style="background: rgba(255,255,255,0.05); border-color: {{ $errors->has('corp_id') ? 'rgba(251,191,36,0.8)' : 'rgba(99,102,241,0.4)' }}; color: white"
                        placeholder="ACME-IND">
                 <p class="text-xs mt-1" style="color: rgba(199,210,254,0.5)">For customer login. Admin can leave this blank.</p>
             </div>
             <div>
                 <label class="form-label" style="color: rgba(199,210,254,0.7)">Username or Email</label>
                 <input type="text" name="username_or_email" value="{{ old('username_or_email') }}" required
-                       class="form-input" style="background: rgba(255,255,255,0.05); border-color: rgba(99,102,241,0.4); color: white"
+                       class="form-input" style="background: rgba(255,255,255,0.05); border-color: {{ $errors->has('username_or_email') ? 'rgba(248,113,113,0.8)' : 'rgba(99,102,241,0.4)' }}; color: white"
                        placeholder="john.smith or you@company.com">
             </div>
             <div>
                 <label class="form-label" style="color: rgba(199,210,254,0.7)">Password</label>
                 <input type="password" name="password" required
-                       class="form-input" style="background: rgba(255,255,255,0.05); border-color: rgba(99,102,241,0.4); color: white"
+                       class="form-input" style="background: rgba(255,255,255,0.05); border-color: {{ $errors->has('password') ? 'rgba(248,113,113,0.8)' : 'rgba(99,102,241,0.4)' }}; color: white"
                        placeholder="••••••••">
             </div>
             <div class="flex items-center justify-between">

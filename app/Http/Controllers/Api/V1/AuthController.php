@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiResponse;
+use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,6 +40,8 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $loginValue = $request->input('login', $request->input('email'));
+        $normalizedLogin = trim((string) $loginValue);
+        $normalizedCorpId = strtoupper(trim((string) $request->input('corp_id', '')));
 
         $validator = Validator::make($request->all(), [
             'login'    => 'nullable|string|max:255',
@@ -55,15 +58,45 @@ class AuthController extends Controller
             return $this->validationError($validator->errors());
         }
 
+        $candidate = User::query()
+            ->with('tenant')
+            ->where('is_active', true)
+            ->where(function ($query) use ($normalizedLogin) {
+                $query->where('email', $normalizedLogin)
+                    ->orWhere('username', $normalizedLogin);
+            })
+            ->first();
+
+        if (!$candidate) {
+            return $this->notFound('This account is not registered. Please check your email or username, or contact support.');
+        }
+
+        if ($candidate->isCustomer()) {
+            if ($normalizedCorpId === '') {
+                return $this->validationError([
+                    'corp_id' => ['Corp ID is required for customer login.'],
+                ], 'Customer login requires a valid Corp ID.');
+            }
+
+            $tenantCorpId = strtoupper((string) optional($candidate->tenant)->corp_id);
+            if ($tenantCorpId === '' || !hash_equals($tenantCorpId, $normalizedCorpId)) {
+                return $this->unauthorized('Corp ID does not match this customer account.');
+            }
+        }
+
         $payload = $this->authService->attempt(
-            (string) $loginValue,
+            $normalizedLogin,
             $request->password,
             $request->boolean('remember', false),
-            $request->input('corp_id')
+            $candidate->isCustomer() ? $normalizedCorpId : null
         );
 
         if (!$payload) {
-            return $this->unauthorized('Invalid credentials. Check Corp ID, username/email, and password.');
+            return $this->unauthorized(
+                $candidate->isCustomer()
+                    ? 'Wrong password. Please try again or reset your password.'
+                    : 'Wrong email/username or password. Please try again.'
+            );
         }
 
         return $this->success($payload, 'Login successful');
