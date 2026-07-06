@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+if [[ -f "${ROOT_DIR}/.deploy.env" ]]; then
+  "${ROOT_DIR}/scripts/deploy_customer_portal.sh"
+else
+  echo "Skipping deploy: .deploy.env not configured."
+fi

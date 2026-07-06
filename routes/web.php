@@ -14,6 +14,8 @@ use App\Http\Controllers\Web\Customer\CustomerContractController;
 use App\Http\Controllers\Web\Customer\CustomerInvoiceController;
 use App\Http\Controllers\Web\Customer\CustomerTicketController;
 use App\Http\Controllers\Web\Customer\CustomerSubscriptionController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 // ─── Root ──────────────────────────────────────────────
@@ -114,3 +116,56 @@ Route::prefix('portal')->middleware(['auth', 'tenant.scope'])->name('customer.')
     Route::get('/support/{ticket}', [CustomerTicketController::class, 'show'])->name('tickets.show');
     Route::post('/support/{ticket}/reply', [CustomerTicketController::class, 'reply'])->name('tickets.reply');
 });
+
+// Secure deployment webhook for shared hosting without shell access.
+Route::post('/__deploy/run-migrations', function (Request $request) {
+    $acceptedTokens = [];
+
+    $configToken = (string) config('app.deploy_webhook_token', '');
+    if ($configToken !== '') {
+        $acceptedTokens[] = $configToken;
+    }
+
+    $envPath = base_path('.env');
+    if (is_readable($envPath)) {
+        $envContent = file_get_contents($envPath);
+        if ($envContent !== false && preg_match('/^DEPLOY_WEBHOOK_TOKEN=(.*)$/m', $envContent, $matches)) {
+            $fileToken = trim($matches[1], " \t\n\r\0\x0B\"'");
+            if ($fileToken !== '' && !in_array($fileToken, $acceptedTokens, true)) {
+                $acceptedTokens[] = $fileToken;
+            }
+        }
+    }
+
+    $provided = (string) $request->header('X-Deploy-Token', '');
+    if ($provided === '') {
+        $provided = (string) $request->input('token', '');
+    }
+
+    if ($provided === '') {
+        abort(403);
+    }
+
+    $valid = false;
+    foreach ($acceptedTokens as $token) {
+        if (hash_equals($token, $provided)) {
+            $valid = true;
+            break;
+        }
+    }
+
+    if (!$valid) {
+        abort(403);
+    }
+
+    Artisan::call('migrate', ['--force' => true]);
+    Artisan::call('optimize:clear');
+    Artisan::call('config:cache');
+    Artisan::call('route:cache');
+    Artisan::call('view:cache');
+
+    return response()->json([
+        'ok' => true,
+        'migrate_output' => Artisan::output(),
+    ]);
+})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);

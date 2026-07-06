@@ -105,6 +105,8 @@ return [
         ),
     ],
 
+    'deploy_webhook_token' => env('DEPLOY_WEBHOOK_TOKEN', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver
