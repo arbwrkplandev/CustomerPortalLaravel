@@ -7,10 +7,18 @@ servers:
   - url: /api/v1
 components:
   securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: SessionToken
     sessionAuth:
       type: apiKey
       in: cookie
       name: wrkplan_session
+    sessionTokenHeader:
+      type: apiKey
+      in: header
+      name: X-Session-Token
   schemas:
     ApiEnvelope:
       type: object
@@ -91,6 +99,8 @@ components:
         new_password: { type: string }
         new_password_confirmation: { type: string }
 security:
+  - bearerAuth: []
+  - sessionTokenHeader: []
   - sessionAuth: []
 paths:
   /auth/login:
@@ -105,9 +115,28 @@ paths:
       responses:
         '200':
           description: Login success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      user_id: { type: integer }
+                      tenant_id: { type: integer, nullable: true }
+                      role: { type: string }
+                      display_name: { type: string }
+                      email: { type: string }
+                      session_token: { type: string, description: Use as Bearer token or X-Session-Token header for direct API requests }
+                      expires_at: { type: string, format: date-time, nullable: true }
   /auth/logout:
     post:
-      summary: Logout current session
+      summary: Logout current session or revoke current API session token
       responses:
         '200': { description: Logout success }
   /auth/me:
@@ -190,6 +219,22 @@ paths:
               $ref: '#/components/schemas/SubscriptionAssignRequest'
       responses:
         '201': { description: Created }
+  /admin/tenants/{tenant}/subscription:
+    patch:
+      summary: Update current tenant subscription
+      parameters:
+        - in: path
+          name: tenant
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionAssignRequest'
+      responses:
+        '200': { description: Updated }
   /admin/tenants/{tenant}/users/{user}/reset-password:
     post:
       summary: Reset tenant user password
@@ -299,9 +344,21 @@ paths:
           schema: { type: integer }
       responses:
         '200': { description: Sent }
+  /admin/contracts/{contract}/revoke:
+    post:
+      summary: Revoke contract from customer and reset to draft (blocked if signed)
+      parameters:
+        - in: path
+          name: contract
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Revoked }
+        '422': { description: Cannot revoke signed contract }
   /admin/contracts/{contract}/download/{type}:
     get:
       summary: Download contract PDF
+      description: Returns the requested original or signed PDF. If the original file is absent but a signed copy exists, the API falls back to the signed PDF.
       parameters:
         - in: path
           name: contract
@@ -313,6 +370,21 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: File }
+  /admin/contracts/{contract}/stream/{type}:
+    get:
+      summary: Stream contract PDF in browser
+      description: Streams the requested original or signed PDF inline. If the original file is absent but a signed copy exists, the API falls back to the signed PDF.
+      parameters:
+        - in: path
+          name: contract
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: type
+          required: false
+          schema: { type: string }
+      responses:
+        '200': { description: Streamed file }
   /admin/invoices:
     get:
       summary: List invoices
@@ -489,6 +561,7 @@ paths:
   /customer/invoices/{id}/download:
     get:
       summary: Download customer invoice
+      description: Returns the invoice PDF attachment for the authenticated customer tenant.
       parameters:
         - in: path
           name: id
@@ -539,6 +612,7 @@ paths:
   /customer/contracts/{id}/download/{type}:
     get:
       summary: Download contract copy
+      description: Returns the requested original or signed PDF. If the original file is absent but a signed copy exists, the API falls back to the signed PDF.
       parameters:
         - in: path
           name: id
@@ -550,6 +624,21 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: File }
+  /customer/contracts/{id}/stream/{type}:
+    get:
+      summary: Stream contract copy in browser
+      description: Streams the requested original or signed PDF inline. If the original file is absent but a signed copy exists, the API falls back to the signed PDF.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: type
+          required: false
+          schema: { type: string }
+      responses:
+        '200': { description: Streamed file }
   /customer/tickets:
     get:
       summary: Customer tickets list

@@ -30,14 +30,14 @@ Route::prefix('v1')->group(function () {
     // ─────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login']);
-        Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
-        Route::get('/me', [AuthController::class, 'me'])->middleware('auth');
+        Route::post('/logout', [AuthController::class, 'logout'])->middleware('api.token.auth');
+        Route::get('/me', [AuthController::class, 'me'])->middleware('api.token.auth');
     });
 
     // ─────────────────────────────────────────
     // Admin API Routes
     // ─────────────────────────────────────────
-    Route::prefix('admin')->middleware(['auth', 'admin.only'])->group(function () {
+    Route::prefix('admin')->middleware(['api.token.auth', 'admin.only'])->group(function () {
 
         // Admin Dashboard
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
@@ -97,7 +97,7 @@ Route::prefix('v1')->group(function () {
     // ─────────────────────────────────────────
     // Customer Portal API Routes
     // ─────────────────────────────────────────
-    Route::prefix('customer')->middleware(['auth', 'tenant.scope'])->group(function () {
+    Route::prefix('customer')->middleware(['api.token.auth', 'tenant.scope'])->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);

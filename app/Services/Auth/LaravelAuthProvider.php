@@ -87,20 +87,36 @@ class LaravelAuthProvider implements AuthProviderInterface
 
     public function logout(): void
     {
-        if ($user = Auth::user()) {
+        $token = trim((string) request()->attributes->get('api_session_token', request()->bearerToken() ?: request()->header('X-Session-Token')));
+
+        if ($token !== '') {
+            AuthSessionMap::where('session_token', $token)
+                ->where('provider', 'laravel')
+                ->delete();
+        } elseif ($user = Auth::user()) {
             AuthSessionMap::where('user_id', $user->id)
                 ->where('provider', 'laravel')
                 ->latest()
                 ->first()?->delete();
         }
 
-        Auth::logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+        if (Auth::check()) {
+            Auth::logout();
+        }
+
+        if (request()->hasSession()) {
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+        }
     }
 
     public function currentUserPayload(): ?array
     {
+        $payload = request()->attributes->get('api_auth_payload');
+        if (is_array($payload)) {
+            return $payload;
+        }
+
         $user = Auth::user();
         if (!$user) {
             return null;

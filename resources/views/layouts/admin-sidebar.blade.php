@@ -57,4 +57,22 @@
         </svg>
         Audit Logs
     </a>
+
+    <div class="text-[10px] font-bold uppercase tracking-widest mt-5 mb-2 px-2" style="color: var(--color-sidebar-text); opacity:0.35">Developer Docs</div>
+
+    <a href="{{ route('docs.api') }}"
+       class="sidebar-link {{ request()->routeIs('docs.api') ? 'active' : '' }}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+        </svg>
+        API Explorer
+    </a>
+
+    <a href="{{ route('docs.database') }}"
+       class="sidebar-link {{ request()->routeIs('docs.database') ? 'active' : '' }}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6c0-1.1 3.6-2 8-2s8 .9 8 2-3.6 2-8 2-8-.9-8-2zm0 6c0 1.1 3.6 2 8 2s8-.9 8-2m-16 6c0 1.1 3.6 2 8 2s8-.9 8-2"/>
+        </svg>
+        Database Docs
+    </a>
 </div>

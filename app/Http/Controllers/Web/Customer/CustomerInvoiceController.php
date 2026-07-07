@@ -36,6 +36,6 @@ class CustomerInvoiceController extends Controller
 
     public function download(int $invoice)
     {
-        return redirect('/api/v1/customer/invoices/' . $invoice . '/download');
+        return $this->api->forward('GET', '/customer/invoices/' . $invoice . '/download', asJson: false);
     }
 }

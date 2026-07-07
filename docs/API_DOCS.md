@@ -2,7 +2,21 @@
 
 Base URL: /api/v1
 
-Auth mode: session-based, provider swappable to .NET through auth provider abstraction.
+Auth mode: hybrid.
+
+- Web portal traffic can continue using Laravel session auth through the internal gateway.
+- Third-party API clients should authenticate with `POST /auth/login` and send the returned `session_token` as either `Authorization: Bearer <token>` or `X-Session-Token: <token>`.
+- Auth provider remains swappable to .NET through the existing auth abstraction.
+
+## Interactive Developer Portals
+
+- API portal UI: /docs/api
+- Raw OpenAPI spec: /docs/openapi.yaml
+- Swagger UI (legacy route): /api/documentation
+- Database visual docs: /docs/database
+- Database schema JSON feed: /docs/database/schema.json
+
+These routes are protected by `auth` + `admin.only` middleware.
 
 ## Response Contract
 
@@ -58,6 +72,12 @@ Error response:
 - POST /auth/logout
 - GET /auth/me
 
+Direct-client auth contract:
+- `POST /auth/login` returns `data.session_token`
+- send that token as `Authorization: Bearer <session_token>` or `X-Session-Token: <session_token>`
+- `POST /auth/logout` revokes the specific token used for the request
+- `GET /auth/me` returns the normalized current-user payload for either a direct API token or a web-authenticated session
+
 Login payload (web + API compatible):
 
 ```json
@@ -72,11 +92,41 @@ Login payload (web + API compatible):
 
 Notes:
 - login or email can be used as identity.
-- corp_id is optional for admin users and recommended for customer-scoped login.
+- corp_id is optional for admin users and required for customer-scoped login.
+- Successful login returns `data.session_token` and `data.expires_at` for direct API use.
+
+Bearer example:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "login": "sarah@techstart.io",
+    "password": "password",
+    "corp_id": "TECHSTAR-0002"
+  }'
+```
+
+Then use the returned token:
+
+```bash
+curl http://localhost:8000/api/v1/customer/dashboard \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer <session_token>"
+```
+
+Alternative header:
+
+```bash
+curl http://localhost:8000/api/v1/customer/dashboard \
+  -H "Accept: application/json" \
+  -H "X-Session-Token: <session_token>"
+```
 
 ## Admin Endpoints
 
-All endpoints below require admin.only middleware.
+All endpoints below require an authenticated admin or superadmin token.
 
 ### Dashboard
 
@@ -189,7 +239,13 @@ Create or update payload:
 - POST /admin/contracts
 - GET /admin/contracts/{contract}
 - POST /admin/contracts/{contract}/send
+- POST /admin/contracts/{contract}/revoke
 - GET /admin/contracts/{contract}/download/{type?}
+- GET /admin/contracts/{contract}/stream/{type?}
+
+Notes:
+- `type` can be `original` or `signed`
+- if the original PDF is unavailable but a signed PDF exists, file delivery falls back to the signed copy instead of returning a false 404
 
 ### Invoices and Payments
 
@@ -198,6 +254,9 @@ Create or update payload:
 - GET /admin/invoices/{invoice}
 - POST /admin/invoices/{invoice}/payment
 - GET /admin/invoices/{invoice}/download-pdf
+
+Notes:
+- web admin invoice downloads are proxied through the internal gateway and no longer redirect the browser to raw `/api/v1` URLs
 
 ### Tickets
 
@@ -223,7 +282,9 @@ Optional query params: search, module, date_from, date_to, per_page.
 
 ## Customer Endpoints
 
-All endpoints below require tenant.scope middleware.
+All endpoints below require an authenticated customer token.
+
+All endpoints below are tenant-scoped.
 
 ### Dashboard
 
@@ -238,6 +299,9 @@ All endpoints below require tenant.scope middleware.
 - GET /customer/invoices/{id}/download
 - GET /customer/renewal-preview
 
+Notes:
+- customer portal invoice downloads are proxied through the internal gateway and return PDF attachments correctly in the browser
+
 ### Contracts
 
 - GET /customer/contracts
@@ -245,6 +309,27 @@ All endpoints below require tenant.scope middleware.
 - POST /customer/contracts/{id}/sign
 - POST /customer/contracts/{id}/upload-signed
 - GET /customer/contracts/{id}/download/{type?}
+- GET /customer/contracts/{id}/stream/{type?}
+
+Sign payload:
+
+```json
+{
+  "signer_name": "Sarah Chen",
+  "signature_data": "data:image/png;base64,...",
+  "fields": {
+    "12": "data:image/png;base64,...",
+    "13": "Initials"
+  }
+}
+```
+
+Upload signed copy:
+- multipart/form-data with file field `signed_pdf`
+
+Notes:
+- `type` can be `original` or `signed`
+- if the original PDF is missing but a signed copy exists, download and stream requests fall back to the signed copy
 
 ### Tickets
 
@@ -267,3 +352,49 @@ This contract should be preserved in .NET implementation.
 ## Health
 
 - GET /health
+
+## Request Examples
+
+### cURL
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/admin/dashboard" \
+  -H "Accept: application/json" \
+  -H "Cookie: wrkplan_session=<session-cookie>"
+```
+
+### JavaScript (Axios)
+
+```javascript
+import axios from 'axios';
+
+const client = axios.create({
+  baseURL: '/api/v1',
+  headers: { Accept: 'application/json' },
+  withCredentials: true,
+});
+
+const { data } = await client.get('/customer/dashboard');
+console.log(data);
+```
+
+### JavaScript (Fetch)
+
+```javascript
+const response = await fetch('/api/v1/customer/contracts/2/sign', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+  },
+  body: JSON.stringify({
+    signer_name: 'Sarah Chen',
+    signature_data: 'data:image/png;base64,...',
+    fields: {},
+  }),
+});
+
+const payload = await response.json();
+console.log(payload);
+```

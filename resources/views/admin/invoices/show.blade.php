@@ -40,8 +40,8 @@
                     <tbody>
                         @foreach($invoice->line_items as $item)
                         <tr>
-                            <td style="color: var(--color-text-secondary)">{{ $item['description'] ?? 'Service' }}</td>
-                            <td class="text-right" style="color: var(--color-text-primary)">${{ number_format($item['amount'] ?? 0, 2) }}</td>
+                            <td style="color: var(--color-text-secondary)">{{ $item->description ?? 'Service' }}</td>
+                            <td class="text-right" style="color: var(--color-text-primary)">${{ number_format($item->amount ?? 0, 2) }}</td>
                         </tr>
                         @endforeach
                     </tbody>

@@ -92,7 +92,7 @@ class ContractController extends Controller
     public function download(int $id, string $type = 'original'): mixed
     {
         $contract = Contract::where('tenant_id', Auth::user()->tenant_id)->findOrFail($id);
-        $path = $type === 'signed' ? $contract->signed_pdf_path : $contract->original_pdf_path;
+        $path = $this->resolvePdfPath($contract, $type);
 
         if (!$path || !\Illuminate\Support\Facades\Storage::exists($path)) {
             return $this->notFound('PDF not found');
@@ -104,7 +104,7 @@ class ContractController extends Controller
     public function stream(int $id, string $type = 'original'): mixed
     {
         $contract = Contract::where('tenant_id', Auth::user()->tenant_id)->findOrFail($id);
-        $path = $type === 'signed' ? $contract->signed_pdf_path : $contract->original_pdf_path;
+        $path = $this->resolvePdfPath($contract, $type);
 
         if (!$path || !\Illuminate\Support\Facades\Storage::exists($path)) {
             return $this->notFound('PDF not found');
@@ -114,5 +114,14 @@ class ContractController extends Controller
             \Illuminate\Support\Facades\Storage::path($path),
             ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline']
         );
+    }
+
+    protected function resolvePdfPath(Contract $contract, string $type): ?string
+    {
+        if ($type === 'signed') {
+            return $contract->signed_pdf_path;
+        }
+
+        return $contract->original_pdf_path ?: $contract->signed_pdf_path;
     }
 }

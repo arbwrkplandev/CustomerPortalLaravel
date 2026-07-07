@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin.only'   => \App\Http\Middleware\AdminOnly::class,
+            'api.token.auth' => \App\Http\Middleware\ApiTokenAuth::class,
             'tenant.scope' => \App\Http\Middleware\TenantScope::class,
             'audit'        => \App\Http\Middleware\AuditActivity::class,
         ]);

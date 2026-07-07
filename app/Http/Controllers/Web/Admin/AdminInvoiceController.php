@@ -83,6 +83,6 @@ class AdminInvoiceController extends Controller
 
     public function downloadPdf(int $invoice)
     {
-        return redirect('/api/v1/admin/invoices/' . $invoice . '/download-pdf');
+        return $this->api->forward('GET', '/admin/invoices/' . $invoice . '/download-pdf', asJson: false);
     }
 }

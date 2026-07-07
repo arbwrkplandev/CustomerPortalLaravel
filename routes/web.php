@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\Customer\CustomerContractController;
 use App\Http\Controllers\Web\Customer\CustomerInvoiceController;
 use App\Http\Controllers\Web\Customer\CustomerTicketController;
 use App\Http\Controllers\Web\Customer\CustomerSubscriptionController;
+use App\Http\Controllers\Web\DocsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,14 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'login'])->name('auth.login.post');
 });
 Route::post('/logout', [LoginController::class, 'logout'])->name('auth.logout')->middleware('auth');
+
+// ─── Developer Docs ─────────────────────────────────────
+Route::prefix('docs')->middleware(['auth', 'admin.only'])->group(function () {
+    Route::get('/api', [DocsController::class, 'apiPortal'])->name('docs.api');
+    Route::get('/openapi.yaml', [DocsController::class, 'openApiYaml'])->name('docs.openapi');
+    Route::get('/database', [DocsController::class, 'databasePortal'])->name('docs.database');
+    Route::get('/database/schema.json', [DocsController::class, 'databaseSchema'])->name('docs.database.schema');
+});
 
 // ─── Admin Hub ──────────────────────────────────────────
 Route::prefix('admin')->middleware(['auth', 'admin.only'])->name('admin.')->group(function () {

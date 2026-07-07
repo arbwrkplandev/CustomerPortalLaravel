@@ -79,7 +79,7 @@ class ContractController extends Controller
 
     public function download(Contract $contract, string $type = 'original'): mixed
     {
-        $path = $type === 'signed' ? $contract->signed_pdf_path : $contract->original_pdf_path;
+        $path = $this->resolvePdfPath($contract, $type);
         if (!$path || !Storage::exists($path)) {
             return $this->notFound('PDF not found');
         }
@@ -88,7 +88,7 @@ class ContractController extends Controller
 
     public function stream(Contract $contract, string $type = 'original'): mixed
     {
-        $path = $type === 'signed' ? $contract->signed_pdf_path : $contract->original_pdf_path;
+        $path = $this->resolvePdfPath($contract, $type);
         if (!$path || !Storage::exists($path)) {
             return $this->notFound('PDF not found');
         }
@@ -97,5 +97,14 @@ class ContractController extends Controller
             Storage::path($path),
             ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline']
         );
+    }
+
+    protected function resolvePdfPath(Contract $contract, string $type): ?string
+    {
+        if ($type === 'signed') {
+            return $contract->signed_pdf_path;
+        }
+
+        return $contract->original_pdf_path ?: $contract->signed_pdf_path;
     }
 }
