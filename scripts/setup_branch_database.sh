@@ -11,10 +11,14 @@ fi
 
 CURRENT_BRANCH="$(git -C "${ROOT_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
 
-# Load .env values for DB connection and source DB.
-set -a
-source "${ENV_FILE}"
-set +a
+# Load only the DB vars we need from .env without exporting everything to the shell.
+_get_env() { grep -E "^$1=" "${ENV_FILE}" | tail -1 | cut -d'=' -f2- | sed "s/['\"]//g"; }
+DB_CONNECTION="${DB_CONNECTION:-$(_get_env DB_CONNECTION)}"
+DB_HOST="${DB_HOST:-$(_get_env DB_HOST)}"
+DB_PORT="${DB_PORT:-$(_get_env DB_PORT)}"
+DB_DATABASE="${DB_DATABASE:-$(_get_env DB_DATABASE)}"
+DB_USERNAME="${DB_USERNAME:-$(_get_env DB_USERNAME)}"
+DB_PASSWORD="${DB_PASSWORD:-$(_get_env DB_PASSWORD)}"
 
 required=(DB_HOST DB_PORT DB_DATABASE DB_USERNAME)
 for key in "${required[@]}"; do
