@@ -3,6 +3,14 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.deploy.env"
+CURRENT_BRANCH="$(git -C "${ROOT_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
+DEPLOY_ALLOWED_BRANCH="${DEPLOY_ALLOWED_BRANCH:-main}"
+
+if [[ "${CURRENT_BRANCH}" != "${DEPLOY_ALLOWED_BRANCH}" ]]; then
+  echo "Skipping deploy: current branch '${CURRENT_BRANCH}' is not '${DEPLOY_ALLOWED_BRANCH}'."
+  echo "Only '${DEPLOY_ALLOWED_BRANCH}' is allowed to deploy to live."
+  exit 0
+fi
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "Missing .deploy.env. Copy .deploy.env.example to .deploy.env and fill values."

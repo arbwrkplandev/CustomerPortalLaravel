@@ -2,6 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
+CURRENT_BRANCH="$(git -C "${ROOT_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
+
+if [[ "${CURRENT_BRANCH}" != "main" ]]; then
+  echo "Skipping deploy: branch '${CURRENT_BRANCH}' is not 'main'."
+  exit 0
+fi
+
 if [[ -f "${ROOT_DIR}/.deploy.env" ]]; then
   "${ROOT_DIR}/scripts/deploy_customer_portal.sh"
 else
