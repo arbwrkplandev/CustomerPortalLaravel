@@ -18,11 +18,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('auth.login'));
 
         $middleware->alias([
-            'admin.only'   => \App\Http\Middleware\AdminOnly::class,
+            'admin.only'     => \App\Http\Middleware\AdminOnly::class,
             'api.token.auth' => \App\Http\Middleware\ApiTokenAuth::class,
-            'tenant.scope' => \App\Http\Middleware\TenantScope::class,
-            'audit'        => \App\Http\Middleware\AuditActivity::class,
+            'tenant.scope'   => \App\Http\Middleware\TenantScope::class,
+            'audit'          => \App\Http\Middleware\AuditActivity::class,
+            'dotnet.refresh' => \App\Http\Middleware\DotNetRefreshToken::class,
         ]);
+
+        // Auto-refresh DotNet ERP tokens on every web request (no-op for non-DotNet sessions).
+        $middleware->appendToGroup('web', \App\Http\Middleware\DotNetRefreshToken::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
