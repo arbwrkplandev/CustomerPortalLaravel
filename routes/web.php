@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\Auth\LoginController;
+use App\Http\Controllers\Web\Auth\DotNetLoginController;
 use App\Http\Controllers\Web\Admin\AdminDashboardController;
 use App\Http\Controllers\Web\Admin\AdminTenantController;
 use App\Http\Controllers\Web\Admin\AdminContractController;
@@ -33,6 +34,10 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLogin'])->name('auth.login');
     Route::post('/login', [LoginController::class, 'login'])->name('auth.login.post');
+
+    // DotNet ERP Login (parallel path — does not affect the standard login)
+    Route::get('/erp-login', [DotNetLoginController::class, 'showLogin'])->name('auth.dotnet.login');
+    Route::post('/erp-login', [DotNetLoginController::class, 'login'])->name('auth.dotnet.login.post');
 });
 Route::post('/logout', [LoginController::class, 'logout'])->name('auth.logout')->middleware('auth');
 
