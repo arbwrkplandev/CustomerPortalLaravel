@@ -27,6 +27,7 @@ return [
         // .NET Auth API Configuration (used only when provider = 'dotnet')
         'dotnet_api_base_url' => env('DOTNET_AUTH_API_BASE_URL', ''),
         'dotnet_api_key'      => env('DOTNET_AUTH_API_KEY', ''),
+        'dotnet_verify_ssl'   => env('DOTNET_AUTH_VERIFY_SSL', true),
     ],
 
     'pagination' => [

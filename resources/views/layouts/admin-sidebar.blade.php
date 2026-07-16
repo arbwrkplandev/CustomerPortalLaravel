@@ -15,6 +15,13 @@
         </svg>
         Customers
     </a>
+    <a href="{{ route('admin.leads.index') }}"
+       class="sidebar-link {{ Str::startsWith($route, 'admin.leads') ? 'active' : '' }}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V4H2v16h5m10 0v-4a3 3 0 00-3-3H10a3 3 0 00-3 3v4m10 0H7m5-12a3 3 0 110 6 3 3 0 010-6z"/>
+        </svg>
+        Leads
+    </a>
     <a href="{{ route('admin.plans.index') }}"
        class="sidebar-link {{ Str::startsWith($route, 'admin.plans') ? 'active' : '' }}">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

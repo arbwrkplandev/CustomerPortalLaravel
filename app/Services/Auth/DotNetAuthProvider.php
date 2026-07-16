@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Models\AuthSessionMap;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Http\Client\Response as HttpResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -26,12 +27,14 @@ class DotNetAuthProvider implements AuthProviderInterface
 {
     protected string $baseUrl;
     protected string $apiKey;
+    protected bool $verifySsl;
     protected ?string $lastError = null;
 
     public function __construct()
     {
         $this->baseUrl = rtrim((string) config('wrkplan.auth.dotnet_api_base_url', ''), '/');
         $this->apiKey = trim((string) config('wrkplan.auth.dotnet_api_key', ''));
+        $this->verifySsl = (bool) config('wrkplan.auth.dotnet_verify_ssl', true);
     }
 
     public function getLastError(): ?string
@@ -53,8 +56,7 @@ class DotNetAuthProvider implements AuthProviderInterface
         $deviceId  = (string) Str::uuid();
 
         try {
-            $response = Http::withHeaders($this->buildHeaders())
-                ->timeout(15)->post($this->baseUrl . '/Security/Login', [
+            $response = $this->postWithApiFallback('Security/Login', [
                 'corpID'         => (string) ($corpId ?? ''),
                 'loginID'        => $identifier,
                 'password'       => $password,
@@ -200,8 +202,7 @@ class DotNetAuthProvider implements AuthProviderInterface
         }
 
         try {
-            $response = Http::withHeaders($this->buildHeaders())
-                ->timeout(15)->post($this->baseUrl . '/Security/RefreshToken', [
+            $response = $this->postWithApiFallback('Security/RefreshToken', [
                 'accessToken'     => $accessToken,
                 'refreshToken'    => $refreshToken,
                 'userID'          => session('dotnet_user_id', 0),
@@ -253,6 +254,43 @@ class DotNetAuthProvider implements AuthProviderInterface
             Log::error('DotNet token refresh exception: ' . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Try both base URL variants:
+     * - as configured (e.g. https://host կամ https://host/api)
+     * - toggled /api suffix variant
+     */
+    private function postWithApiFallback(string $path, array $payload): HttpResponse
+    {
+        $client = Http::withOptions(['verify' => $this->verifySsl])
+            ->withHeaders($this->buildHeaders())
+            ->timeout(15);
+
+        $urls = $this->buildCandidateUrls($path);
+        $response = $client->post($urls[0], $payload);
+
+        if ($response->status() !== 404 || count($urls) < 2) {
+            return $response;
+        }
+
+        return $client->post($urls[1], $payload);
+    }
+
+    private function buildCandidateUrls(string $path): array
+    {
+        $base = rtrim($this->baseUrl, '/');
+        $path = ltrim($path, '/');
+
+        $urls = [$base . '/' . $path];
+
+        if (str_ends_with(strtolower($base), '/api')) {
+            $urls[] = substr($base, 0, -4) . '/' . $path;
+        } else {
+            $urls[] = $base . '/api/' . $path;
+        }
+
+        return array_values(array_unique($urls));
     }
 
     public function logout(): void

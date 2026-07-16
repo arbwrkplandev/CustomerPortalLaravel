@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\Admin\AdminInvoiceController;
 use App\Http\Controllers\Web\Admin\AdminTicketController;
 use App\Http\Controllers\Web\Admin\AdminAnnouncementController;
 use App\Http\Controllers\Web\Admin\AdminAuditController;
+use App\Http\Controllers\Web\Admin\AdminLeadController;
 use App\Http\Controllers\Web\Admin\AdminPlanController;
 use App\Http\Controllers\Web\Customer\CustomerDashboardController;
 use App\Http\Controllers\Web\Customer\CustomerContractController;
@@ -57,6 +58,7 @@ Route::prefix('admin')->middleware(['auth', 'admin.only'])->name('admin.')->grou
     Route::get('/customers', [AdminTenantController::class, 'index'])->name('tenants.index');
     Route::get('/customers/create', [AdminTenantController::class, 'create'])->name('tenants.create');
     Route::post('/customers', [AdminTenantController::class, 'store'])->name('tenants.store');
+    Route::get('/customers/{tenant}/details', [AdminTenantController::class, 'details'])->name('tenants.details');
     Route::get('/customers/{tenant}', [AdminTenantController::class, 'show'])->name('tenants.show');
     Route::get('/customers/{tenant}/edit', [AdminTenantController::class, 'edit'])->name('tenants.edit');
     Route::put('/customers/{tenant}', [AdminTenantController::class, 'update'])->name('tenants.update');
@@ -64,6 +66,10 @@ Route::prefix('admin')->middleware(['auth', 'admin.only'])->name('admin.')->grou
     Route::post('/customers/{tenant}/subscription', [AdminTenantController::class, 'assignSubscription'])->name('tenants.assign-subscription');
     Route::patch('/customers/{tenant}/subscription', [AdminTenantController::class, 'updateSubscription'])->name('tenants.update-subscription');
     Route::post('/customers/{tenant}/users/{user}/reset-password', [AdminTenantController::class, 'resetUserPassword'])->name('tenants.reset-password');
+
+    // Leads
+    Route::get('/leads', [AdminLeadController::class, 'index'])->name('leads.index');
+    Route::get('/leads/{lead}', [AdminLeadController::class, 'show'])->name('leads.show');
 
     // Plans
     Route::get('/plans', [AdminPlanController::class, 'index'])->name('plans.index');
@@ -78,10 +84,8 @@ Route::prefix('admin')->middleware(['auth', 'admin.only'])->name('admin.')->grou
     Route::get('/contracts/create', [AdminContractController::class, 'create'])->name('contracts.create');
     Route::post('/contracts', [AdminContractController::class, 'store'])->name('contracts.store');
     Route::get('/contracts/{contract}', [AdminContractController::class, 'show'])->name('contracts.show');
-    Route::post('/contracts/{contract}/send', [AdminContractController::class, 'send'])->name('contracts.send');
-    Route::post('/contracts/{contract}/revoke', [AdminContractController::class, 'revoke'])->name('contracts.revoke');
-    Route::get('/contracts/{contract}/download/{type?}', [AdminContractController::class, 'download'])->name('contracts.download');
-    Route::get('/contracts/{contract}/stream/{type?}', [AdminContractController::class, 'streamPdf'])->name('contracts.stream');
+    Route::post('/contracts/{contract}/update', [AdminContractController::class, 'update'])->name('contracts.update');
+    Route::post('/contracts/{contract}/delete', [AdminContractController::class, 'destroy'])->name('contracts.delete');
 
     // Invoices
     Route::get('/invoices', [AdminInvoiceController::class, 'index'])->name('invoices.index');
