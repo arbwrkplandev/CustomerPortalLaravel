@@ -13,24 +13,19 @@
             <h1 class="text-3xl font-black" style="color: var(--color-text-primary)">Contract Agreements</h1>
             <p class="mt-1" style="color: var(--color-text-secondary)">Manage agreement templates from WrkPlan ERP</p>
         </div>
-        <a href="{{ route('admin.contracts.create') }}" class="btn btn-primary">
+        <!-- <a href="{{ route('admin.contracts.create') }}" class="btn btn-primary">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
             New Agreement
-        </a>
+        </a> -->
     </div>
 
     <div class="card mb-6">
         <form method="GET" class="flex flex-wrap gap-4">
             <input type="text" name="search" value="{{ request('search') }}" class="form-input flex-1 min-w-48" placeholder="Search by ID, type, title, or creator...">
-            <select name="tagged" class="form-input w-44">
-                <option value="">All Tags</option>
-                <option value="yes" {{ request('tagged') === 'yes' ? 'selected' : '' }}>Tagged</option>
-                <option value="no" {{ request('tagged') === 'no' ? 'selected' : '' }}>Not Tagged</option>
-            </select>
             <button type="submit" class="btn btn-outline">Filter</button>
-            @if(request()->anyFilled(['search', 'tagged']))
+            @if(request()->filled('search'))
             <a href="{{ route('admin.contracts.index') }}" class="btn btn-outline">Clear</a>
             @endif
         </form>
@@ -51,9 +46,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Type</th>
-                        <th>Title</th>
-                        <th>Length</th>
-                        <th>Tagged</th>
+                        <th>Created By</th>
                         <th>Compressed</th>
                         <th>Created</th>
                         <th>Updated</th>
@@ -65,18 +58,7 @@
                     <tr>
                         <td class="font-mono text-xs" style="color: var(--color-text-secondary)">#{{ $agreement->id }}</td>
                         <td style="color: var(--color-text-primary)">{{ $agreement->document_type ?: '—' }}</td>
-                        <td>
-                            <div class="font-semibold" style="color: var(--color-text-primary)">{{ $agreement->document_title ?: '—' }}</div>
-                            <div class="text-xs mt-0.5" style="color: var(--color-text-secondary)">By {{ $agreement->created_by ?: '—' }}</div>
-                        </td>
-                        <td style="color: var(--color-text-secondary)">{{ number_format((int) $agreement->content_length) }}</td>
-                        <td>
-                            @if($agreement->is_tagged)
-                                <span class="badge badge-warning">Tagged</span>
-                            @else
-                                <span class="badge" style="background: var(--color-surface-2); color: var(--color-text-secondary)">No</span>
-                            @endif
-                        </td>
+                        <td style="color: var(--color-text-secondary)">{{ $agreement->created_by ?: '—' }}</td>
                         <td>
                             @if($agreement->is_compressed)
                                 <span class="badge badge-success">Yes</span>
@@ -93,14 +75,12 @@
                         <td class="text-right">
                             <div class="flex items-center justify-end gap-2">
                                 <a href="{{ route('admin.contracts.show', $agreement->id) }}" class="btn btn-outline btn-sm">View</a>
-                                @if(!$agreement->is_tagged)
                                 <form method="POST" action="{{ route('admin.contracts.delete', $agreement->id) }}" class="inline" onsubmit="return confirm('Delete this contract agreement?')">
                                     @csrf
                                     <button type="submit" class="btn btn-danger btn-sm">
                                         Delete
                                     </button>
                                 </form>
-                                @endif
                             </div>
                         </td>
                     </tr>

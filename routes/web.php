@@ -84,6 +84,7 @@ Route::prefix('admin')->middleware(['auth', 'admin.only'])->name('admin.')->grou
     Route::get('/contracts/create', [AdminContractController::class, 'create'])->name('contracts.create');
     Route::post('/contracts', [AdminContractController::class, 'store'])->name('contracts.store');
     Route::get('/contracts/{contract}', [AdminContractController::class, 'show'])->name('contracts.show');
+    Route::get('/contracts/{contract}/download-word', [AdminContractController::class, 'downloadWord'])->name('contracts.download-word');
     Route::post('/contracts/{contract}/update', [AdminContractController::class, 'update'])->name('contracts.update');
     Route::post('/contracts/{contract}/delete', [AdminContractController::class, 'destroy'])->name('contracts.delete');
 
