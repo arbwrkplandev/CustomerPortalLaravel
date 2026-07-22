@@ -29,7 +29,7 @@ class AdminContractController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'document_type' => 'required|string|max:255',
+            'agreement_type' => 'required|string|max:255',
             'document_title' => 'nullable|string|max:255',
             'document_content' => 'required|string',
         ]);
@@ -37,8 +37,8 @@ class AdminContractController extends Controller
         $documentContent = (string) $request->input('document_content', '');
 
         $payload = [
-            'document_type' => (string) $request->input('document_type'),
-            'document_location' => $documentContent,
+            'agreement_type' => (string) $request->input('agreement_type'),
+            'agreement_location' => $documentContent,
         ];
 
         $response = $this->postDotNetWithApiFallback(
@@ -77,8 +77,8 @@ class AdminContractController extends Controller
     {
         $agreement = $this->fetchAgreementDetailOrAbort($contract);
 
-        if ($this->looksLikeDocumentPath((string) ($agreement->document_location ?? ''))) {
-            $absolutePath = $this->resolveDocumentLocationPath((string) $agreement->document_location);
+        if ($this->looksLikeDocumentPath((string) ($agreement->agreement_location ?? ''))) {
+            $absolutePath = $this->resolveDocumentLocationPath((string) $agreement->agreement_location);
             if ($absolutePath !== null && is_file($absolutePath)) {
                 return response()->download($absolutePath, basename($absolutePath));
             }
@@ -106,13 +106,13 @@ class AdminContractController extends Controller
         $existing = $this->fetchAgreementDetailOrAbort($contract);
 
         $request->validate([
-            'document_type' => 'required|string|max:255',
+            'agreement_type' => 'required|string|max:255',
             'document_title' => 'nullable|string|max:255',
             'document_content' => 'required|string',
         ]);
 
         $documentContent = (string) $request->input('document_content', '');
-        $documentLocation = (string) ($existing->document_location ?? '');
+        $documentLocation = (string) ($existing->agreement_location ?? '');
 
         if ($this->looksLikeDocumentPath($documentLocation)) {
             try {
@@ -125,8 +125,8 @@ class AdminContractController extends Controller
         }
 
         $payload = [
-            'document_type' => (string) $request->input('document_type'),
-            'document_location' => $this->looksLikeDocumentPath($documentLocation)
+            'agreement_type' => (string) $request->input('agreement_type'),
+            'agreement_location' => $this->looksLikeDocumentPath($documentLocation)
                 ? $documentLocation
                 : $documentContent,
         ];
@@ -198,7 +198,7 @@ class AdminContractController extends Controller
         if ($search !== '') {
             $needle = strtolower($search);
             $items = $items->filter(function (object $item) use ($needle): bool {
-                return str_contains(strtolower((string) $item->document_type), $needle)
+                return str_contains(strtolower((string) $item->agreement_type), $needle)
                     || str_contains(strtolower((string) $item->document_title), $needle)
                     || str_contains(strtolower((string) $item->created_by), $needle)
                     || str_contains((string) $item->id, $needle);
@@ -237,13 +237,15 @@ class AdminContractController extends Controller
 
     private function mapAgreementRow(array $row): object
     {
-        $documentType = (string) ($row['document_type'] ?? '');
+        $agreementType = (string) ($row['agreement_type'] ?? $row['document_type'] ?? '');
+        $agreementLocation = (string) ($row['agreement_location'] ?? $row['document_location'] ?? '');
 
         return (object) [
             'id' => (int) ($row['iD_CONTRACT_AGREEMENT'] ?? $row['ID_CONTRACT_AGREEMENT'] ?? 0),
             'id_company' => (int) ($row['iD_COMPANY'] ?? $row['ID_COMPANY'] ?? 0),
-            'document_type' => $documentType,
-            'document_title' => (string) ($row['document_title'] ?? $documentType),
+            'agreement_type' => $agreementType,
+            'document_title' => (string) ($row['document_title'] ?? $agreementType),
+            'agreement_location' => $agreementLocation,
             'content_length' => (int) ($row['content_length'] ?? 0),
             'is_compressed' => (bool) ($row['is_compressed'] ?? false),
             'created_at' => $this->parseDate((string) ($row['created_at'] ?? '')),
@@ -258,7 +260,7 @@ class AdminContractController extends Controller
     {
         $agreement = $this->mapAgreementRow($row);
 
-        $documentLocation = (string) ($row['document_location'] ?? '');
+        $documentLocation = (string) ($row['agreement_location'] ?? $row['document_location'] ?? '');
         $rawContent = (string) ($row['document_content'] ?? '');
 
         if ($rawContent === '' && $this->looksLikeDocumentPath($documentLocation)) {
@@ -270,7 +272,7 @@ class AdminContractController extends Controller
         }
 
         $agreement->document_content = $this->normalizeDocumentContent($rawContent);
-        $agreement->document_location = $documentLocation;
+        $agreement->agreement_location = $documentLocation;
         $agreement->content_length = mb_strlen(trim(strip_tags($agreement->document_content)));
 
         return $agreement;
@@ -748,20 +750,34 @@ class AdminContractController extends Controller
             []
         );
 
-        if (!$response->successful()) {
-            if ($response->status() === 404) {
-                abort(404);
+        if ($response->successful()) {
+            $payload = $response->json();
+            if (is_array($payload)) {
+                return $this->mapAgreementDetail($payload);
             }
-
-            abort(500, $this->extractDotNetError($response));
         }
 
-        $payload = $response->json();
-        if (!is_array($payload)) {
-            abort(500, 'Unexpected agreement response format.');
+        // Endpoint compatibility fallback: list endpoint now carries location metadata.
+        $fallback = collect($this->fetchDotNetContractAgreements(request(), 500)->items())
+            ->first(fn (object $item): bool => (int) ($item->id ?? 0) === $contract);
+
+        if (is_object($fallback)) {
+            return $this->mapAgreementDetail([
+                'iD_CONTRACT_AGREEMENT' => (int) ($fallback->id ?? $contract),
+                'agreement_type' => (string) ($fallback->agreement_type ?? ''),
+                'agreement_location' => (string) ($fallback->agreement_location ?? ''),
+                'created_at' => (string) optional($fallback->created_at)->format('Y/m/d'),
+                'updated_at' => (string) optional($fallback->updated_at)->format('Y/m/d'),
+                'created_by' => (string) ($fallback->created_by ?? ''),
+                'updated_by' => (string) ($fallback->updated_by ?? ''),
+            ]);
         }
 
-        return $this->mapAgreementDetail($payload);
+        if ($response->status() === 404) {
+            abort(404);
+        }
+
+        abort(500, $this->extractDotNetError($response));
     }
 
     private function parseDate(string $value): ?Carbon

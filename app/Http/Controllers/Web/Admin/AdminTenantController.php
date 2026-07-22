@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\CustomerAgreementStore;
 use App\Support\InternalApiGateway;
 use Carbon\Carbon;
 use Illuminate\Http\Client\Response as HttpResponse;
@@ -13,7 +14,10 @@ use Illuminate\Support\Facades\Log;
 
 class AdminTenantController extends Controller
 {
-    public function __construct(protected InternalApiGateway $api) {}
+    public function __construct(
+        protected InternalApiGateway $api,
+        protected CustomerAgreementStore $agreementStore,
+    ) {}
 
     public function index(Request $request)
     {
@@ -113,7 +117,29 @@ class AdminTenantController extends Controller
 
         $page = max(1, $request->integer('page', 1));
         $total = $items->count();
-        $paged = $items->slice(($page - 1) * $perPage, $perPage)->values();
+        $paged = $items->slice(($page - 1) * $perPage, $perPage)
+            ->values()
+            ->map(function (object $item): object {
+                $records = $this->agreementStore->getRecords((int) $item->id);
+                $sentCount = 0;
+                $signedCount = 0;
+
+                foreach ($records as $record) {
+                    $status = strtolower((string) ($record['status'] ?? ''));
+                    if (in_array($status, ['sent', 'acknowledged', 'signed'], true)) {
+                        $sentCount++;
+                    }
+                    if (in_array($status, ['acknowledged', 'signed'], true)) {
+                        $signedCount++;
+                    }
+                }
+
+                $item->agreement_sent_count = $sentCount;
+                $item->agreement_signed_count = $signedCount;
+                $item->has_signed_agreement = $signedCount > 0;
+
+                return $item;
+            });
 
         return new LengthAwarePaginator(
             $paged,

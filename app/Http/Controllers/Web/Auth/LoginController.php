@@ -69,6 +69,6 @@ class LoginController extends Controller
     public function logout(Request $request): RedirectResponse
     {
         $this->api->post('/auth/logout');
-        return redirect()->route('auth.login');
+        return redirect()->route('auth.dotnet.login');
     }
 }

@@ -57,7 +57,7 @@
                     @foreach($agreements as $agreement)
                     <tr>
                         <td class="font-mono text-xs" style="color: var(--color-text-secondary)">#{{ $agreement->id }}</td>
-                        <td style="color: var(--color-text-primary)">{{ $agreement->document_type ?: '—' }}</td>
+                        <td style="color: var(--color-text-primary)">{{ $agreement->agreement_type ?: '—' }}</td>
                         <td style="color: var(--color-text-secondary)">{{ $agreement->created_by ?: '—' }}</td>
                         <td>
                             @if($agreement->is_compressed)

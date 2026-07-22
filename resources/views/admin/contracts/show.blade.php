@@ -63,7 +63,7 @@
                     <h1 class="text-2xl font-black" style="color: var(--color-text-primary)">{{ $agreement->document_title ?: 'Untitled Agreement' }}</h1>
                 </div>
                 <p class="mt-1 text-sm" style="color: var(--color-text-secondary)">
-                    Agreement #{{ $agreement->id }} · {{ $agreement->document_type ?: '—' }}
+                    Agreement #{{ $agreement->id }} · {{ $agreement->agreement_type ?: '—' }}
                 </p>
             </div>
         </div>
@@ -109,7 +109,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="form-label">Document Type <span class="text-red-400">*</span></label>
-                                <input type="text" name="document_type" value="{{ old('document_type', $agreement->document_type) }}" required class="form-input">
+                                <input type="text" name="agreement_type" value="{{ old('agreement_type', $agreement->agreement_type) }}" required class="form-input">
                             </div>
                             <div>
                                 <label class="form-label">Document Title <span class="text-red-400">*</span></label>
@@ -145,7 +145,7 @@
                     </div>
                     <div class="flex justify-between">
                         <span style="color: var(--color-text-secondary)">Type</span>
-                        <span style="color: var(--color-text-primary)">{{ $agreement->document_type ?: '—' }}</span>
+                        <span style="color: var(--color-text-primary)">{{ $agreement->agreement_type ?: '—' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span style="color: var(--color-text-secondary)">Compressed</span>

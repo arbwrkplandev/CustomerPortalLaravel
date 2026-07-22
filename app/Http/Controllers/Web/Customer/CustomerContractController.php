@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Customer;
 use App\Http\Controllers\Controller;
 use App\Support\InternalApiGateway;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class CustomerContractController extends Controller
 {
@@ -19,8 +20,9 @@ class CustomerContractController extends Controller
         ]);
 
         $contracts = $this->api->toPaginator($response, 10);
+        $taggedAgreements = $this->loadTaggedAgreements((int) auth()->user()->tenant_id);
 
-        return view('customer.contracts.index', compact('contracts'));
+        return view('customer.contracts.index', compact('contracts', 'taggedAgreements'));
     }
 
     public function show(int $contract)
@@ -94,5 +96,29 @@ class CustomerContractController extends Controller
     public function download(int $contract, string $type = 'original')
     {
         return $this->api->forward('GET', '/customer/contracts/' . $contract . '/download/' . $type, asJson: false);
+    }
+
+    private function loadTaggedAgreements(int $customerId): Collection
+    {
+        $path = storage_path('app/customer-agreements/' . $customerId . '/index.json');
+        if (!is_file($path)) {
+            return collect();
+        }
+
+        $json = file_get_contents($path);
+        if (!is_string($json) || trim($json) === '') {
+            return collect();
+        }
+
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            return collect();
+        }
+
+        return collect($decoded)
+            ->filter(fn (array $row): bool => (string) ($row['status'] ?? '') === 'sent')
+            ->sortByDesc(fn (array $row): string => (string) ($row['sent_at'] ?? ''))
+            ->values()
+            ->map(fn (array $row): object => (object) $row);
     }
 }

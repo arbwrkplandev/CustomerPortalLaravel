@@ -51,7 +51,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="form-label">Document Type <span class="text-red-400">*</span></label>
-                    <input type="text" name="document_type" value="{{ old('document_type') }}" required class="form-input" placeholder="Service Agreement">
+                    <input type="text" name="agreement_type" value="{{ old('agreement_type') }}" required class="form-input" placeholder="Service Agreement">
                 </div>
                 <div>
                     <label class="form-label">Document Title <span class="text-red-400">*</span></label>

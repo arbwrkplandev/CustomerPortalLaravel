@@ -15,6 +15,48 @@
         </div>
     </div>
 
+    @if(isset($taggedAgreements) && $taggedAgreements->isNotEmpty())
+        <div class="card overflow-hidden mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold" style="color: var(--color-text-primary)">Agreements Sent By Admin</h2>
+                <span class="badge badge-success">{{ $taggedAgreements->count() }} sent</span>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Agreement Type</th>
+                        <th>Financial Year</th>
+                        <th>Sent At</th>
+                        <th>Status</th>
+                        <th class="text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($taggedAgreements as $record)
+                        <tr>
+                            <td style="color: var(--color-text-primary)">{{ $record->agreement_type ?: 'Agreement' }}</td>
+                            <td style="color: var(--color-text-secondary)">{{ $record->fin_year_code ?: '—' }}</td>
+                            <td style="color: var(--color-text-secondary)">
+                                {{ $record->sent_at ? \Carbon\Carbon::parse($record->sent_at)->format('M d, Y h:i A') : '—' }}
+                            </td>
+                            <td>
+                                @if(!empty($record->customer_acknowledged_at))
+                                    <span class="badge badge-success">Acknowledged</span>
+                                @else
+                                    <span class="badge badge-warning">Pending Action</span>
+                                @endif
+                            </td>
+                            <td class="text-right">
+                                <a href="{{ route('customer.contracts.tagged.show', $record->id) }}" class="btn btn-outline btn-sm">View</a>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
     @if($contracts->isEmpty())
         <div class="card text-center py-16">
             <svg class="w-16 h-16 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
