@@ -11,7 +11,13 @@
 <!-- Header Actions -->
 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
     <form method="GET" class="flex gap-2 flex-1 max-w-lg">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search customers..." class="form-input flex-1">
+        <label class="company-search" for="companySearchInput">
+            <svg class="company-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input id="companySearchInput" type="text" name="search" value="{{ request('search') }}" placeholder="Search by company name..." class="form-input company-search__input flex-1" autocomplete="off">
+            <span class="company-search__glow" aria-hidden="true"></span>
+        </label>
         <select name="status" class="form-input w-36">
             <option value="">All Status</option>
             <option value="active" @selected(request('status') === 'active')>Active</option>
@@ -20,6 +26,7 @@
         </select>
         <button type="submit" class="btn btn-primary">Filter</button>
     </form>
+    <div id="companySearchMeta" class="company-search-meta">Type to instantly find a company</div>
     <!-- <a href="{{ route('admin.tenants.create') }}" class="btn btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         New Customer
@@ -41,7 +48,7 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="customersTableBody">
                 @forelse($tenants as $tenant)
                 <tr class="animate-fadeInUp">
                     <td>
@@ -99,27 +106,14 @@
                                 type="button"
                                 class="btn btn-primary py-1.5 px-3 text-xs js-customer-view"
                                 data-details-url="{{ route('admin.tenants.details', $tenant->id) }}"
-                            >
-                                View
-                            </button>
-                            <button
-                                type="button"
-                                class="btn btn-outline py-1.5 px-3 text-xs js-tag-agreement"
                                 data-workspace-url="{{ route('admin.tenants.agreements.workspace', $tenant->id) }}"
                                 data-template-base-url="{{ url('/admin/customers/' . $tenant->id . '/agreements/template') }}"
                                 data-draft-url="{{ route('admin.tenants.agreements.draft', $tenant->id) }}"
                                 data-send-url="{{ route('admin.tenants.agreements.send', $tenant->id) }}"
-                                data-customer-name="{{ $tenant->company_name }}"
-                            >
-                                Tag Agreement
-                            </button>
-                            <button
-                                type="button"
-                                class="btn btn-outline py-1.5 px-3 text-xs js-view-signed"
                                 data-signed-url="{{ route('admin.tenants.agreements.signed', $tenant->id) }}"
                                 data-customer-name="{{ $tenant->company_name }}"
                             >
-                                Signed Copies
+                                View
                             </button>
                             {{-- <form method="POST" action="{{ route('admin.tenants.toggle-status', $tenant) }}">
                                 @csrf
@@ -205,6 +199,78 @@
 
 @push('styles')
 <style>
+    .company-search {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-width: 280px;
+        flex: 1 1 auto;
+    }
+
+    .company-search__icon {
+        position: absolute;
+        left: 0.72rem;
+        width: 1rem;
+        height: 1rem;
+        color: #6366f1;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .company-search__input {
+        padding-left: 2.25rem;
+        border-radius: 12px;
+        border: 1px solid rgba(99, 102, 241, 0.22);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 255, 0.96));
+        transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    }
+
+    .company-search__input:focus {
+        border-color: rgba(79, 70, 229, 0.55);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .company-search__glow {
+        position: absolute;
+        right: 0.7rem;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: rgba(99, 102, 241, 0.35);
+        box-shadow: 0 0 0 rgba(99, 102, 241, 0.46);
+        animation: companySearchPulse 1.6s infinite;
+        pointer-events: none;
+    }
+
+    .company-search-meta {
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: #6366f1;
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 999px;
+        padding: 0.34rem 0.7rem;
+    }
+
+    .company-row-hidden {
+        opacity: 0;
+        transform: translateY(4px) scale(0.995);
+        transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .company-row-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    @keyframes companySearchPulse {
+        0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.45); }
+        70% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+    }
+
     .customer-modal {
         position: fixed;
         inset: 0;
@@ -374,6 +440,65 @@
         justify-content: center;
         gap: 0.6rem;
         font-weight: 600;
+    }
+
+    .customer-action-hub {
+        margin-top: 1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(129, 140, 248, 0.16), rgba(244, 114, 182, 0.12));
+        padding: 0.95rem;
+        animation: cardReveal 460ms ease both;
+    }
+
+    .customer-action-hub__title {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.82;
+        font-weight: 700;
+    }
+
+    .customer-action-grid {
+        margin-top: 0.7rem;
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .customer-action-btn {
+        position: relative;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        background: rgba(5, 10, 30, 0.42);
+        color: #f8fafc;
+        padding: 0.7rem 0.8rem;
+        text-align: left;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .customer-action-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(125, 211, 252, 0.85);
+        box-shadow: 0 8px 26px rgba(56, 189, 248, 0.26);
+    }
+
+    .customer-action-btn strong {
+        display: block;
+        font-size: 0.9rem;
+    }
+
+    .customer-action-btn span {
+        display: block;
+        margin-top: 0.15rem;
+        font-size: 0.72rem;
+        opacity: 0.86;
+    }
+
+    @media (max-width: 760px) {
+        .customer-action-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .customer-pulse-dot {
@@ -706,12 +831,91 @@
         .signed-shell {
             grid-template-columns: 1fr;
         }
+
+        .company-search-meta {
+            width: 100%;
+            text-align: center;
+        }
     }
 </style>
 @endpush
 
 @push('scripts')
 <script>
+    (() => {
+        const input = document.getElementById('companySearchInput');
+        const tbody = document.getElementById('customersTableBody');
+        const meta = document.getElementById('companySearchMeta');
+
+        if (!input || !tbody) {
+            return;
+        }
+
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const dataRows = rows.filter((row) => !row.querySelector('td[colspan]'));
+        const emptyRow = rows.find((row) => row.querySelector('td[colspan]')) || null;
+
+        const customNoMatchRow = document.createElement('tr');
+        customNoMatchRow.innerHTML = `
+            <td colspan="7" class="text-center py-10" style="color: var(--color-text-muted)">
+                <div class="text-sm font-semibold">No company matched your search.</div>
+                <div class="text-xs mt-1 opacity-80">Try a different company name.</div>
+            </td>
+        `;
+
+        const normalize = (value) => String(value || '').toLowerCase().trim();
+
+        const companyNameForRow = (row) => {
+            const companyCell = row.querySelector('td:first-child .font-semibold');
+            return normalize(companyCell?.textContent || '');
+        };
+
+        const setMeta = (query, visible, total) => {
+            if (!meta) {
+                return;
+            }
+
+            if (query === '') {
+                meta.textContent = `Showing ${visible} of ${total} companies`;
+                return;
+            }
+
+            meta.textContent = `${visible} match${visible === 1 ? '' : 'es'} for "${query}"`;
+        };
+
+        const applyFilter = () => {
+            const query = normalize(input.value);
+            let visibleCount = 0;
+
+            dataRows.forEach((row) => {
+                const matched = query === '' || companyNameForRow(row).includes(query);
+                row.classList.toggle('company-row-hidden', !matched);
+                row.classList.toggle('company-row-visible', matched);
+                row.style.display = matched ? '' : 'none';
+                if (matched) {
+                    visibleCount++;
+                }
+            });
+
+            if (emptyRow) {
+                emptyRow.style.display = dataRows.length === 0 ? '' : 'none';
+            }
+
+            if (dataRows.length > 0 && visibleCount === 0) {
+                if (!tbody.contains(customNoMatchRow)) {
+                    tbody.appendChild(customNoMatchRow);
+                }
+            } else if (tbody.contains(customNoMatchRow)) {
+                customNoMatchRow.remove();
+            }
+
+            setMeta(input.value.trim(), visibleCount, dataRows.length);
+        };
+
+        input.addEventListener('input', applyFilter);
+        applyFilter();
+    })();
+
     (() => {
         const modal = document.getElementById('customerDetailsModal');
         const body = document.getElementById('customerModalBody');
@@ -750,10 +954,11 @@
             document.body.style.overflow = '';
         };
 
-        const renderDetails = (payload) => {
+        const renderDetails = (payload, actionConfig = {}) => {
             const customer = payload.customer || {};
             const contacts = Array.isArray(customer.contacts) ? customer.contacts : [];
             const createdAt = toText(customer.created_at, 'Unknown date').replaceAll('/', '-');
+            const customerName = toText(customer.company_name, toText(actionConfig.customerName, 'Customer'));
 
             const contactMarkup = contacts.map((entry, index) => {
                 // Backward compatibility:
@@ -794,10 +999,10 @@
                         <div class="flex items-center gap-3">
                             <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black"
                                  style="background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.38)">
-                                ${escapeHtml(customerInitials(customer.company_name))}
+                                ${escapeHtml(customerInitials(customerName))}
                             </div>
                             <div>
-                                <h2 id="customerDetailsTitle" class="text-xl font-black">${escapeHtml(toText(customer.company_name, 'Customer'))}</h2>
+                                <h2 id="customerDetailsTitle" class="text-xl font-black">${escapeHtml(customerName)}</h2>
                                 <div class="text-sm opacity-80">Code: ${escapeHtml(toText(customer.customer_code, toText(customer.vendor_code)))}</div>
                             </div>
                         </div>
@@ -839,6 +1044,33 @@
                     </div>
                     ${contactMarkup || '<div class="customer-address">No contact data available.</div>'}
                 </section>
+
+                <section class="customer-action-hub">
+                    <div class="customer-action-hub__title">Agreement Operations</div>
+                    <div class="customer-action-grid">
+                        <button
+                            type="button"
+                            class="customer-action-btn js-tag-agreement"
+                            data-workspace-url="${escapeHtml(actionConfig.workspaceUrl || '')}"
+                            data-template-base-url="${escapeHtml(actionConfig.templateBaseUrl || '')}"
+                            data-draft-url="${escapeHtml(actionConfig.draftUrl || '')}"
+                            data-send-url="${escapeHtml(actionConfig.sendUrl || '')}"
+                            data-customer-name="${escapeHtml(actionConfig.customerName || customerName)}"
+                        >
+                            <strong>Tag Agreement</strong>
+                            <span>Open animated workspace, edit, draft, and send.</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="customer-action-btn js-view-signed"
+                            data-signed-url="${escapeHtml(actionConfig.signedUrl || '')}"
+                            data-customer-name="${escapeHtml(actionConfig.customerName || customerName)}"
+                        >
+                            <strong>Signed Copies</strong>
+                            <span>Review signed contracts, preview signatures, and download.</span>
+                        </button>
+                    </div>
+                </section>
             `;
         };
 
@@ -863,6 +1095,14 @@
         viewButtons.forEach((button) => {
             button.addEventListener('click', async () => {
                 const url = button.dataset.detailsUrl;
+                const actionConfig = {
+                    workspaceUrl: String(button.dataset.workspaceUrl || ''),
+                    templateBaseUrl: String(button.dataset.templateBaseUrl || ''),
+                    draftUrl: String(button.dataset.draftUrl || ''),
+                    sendUrl: String(button.dataset.sendUrl || ''),
+                    signedUrl: String(button.dataset.signedUrl || ''),
+                    customerName: String(button.dataset.customerName || ''),
+                };
                 openModal();
                 setLoading();
 
@@ -882,7 +1122,7 @@
                         return;
                     }
 
-                    renderDetails(payload.data || {});
+                    renderDetails(payload.data || {}, actionConfig);
                 } catch (error) {
                     renderError('Network error while loading customer details.');
                 }
@@ -903,9 +1143,8 @@
     (() => {
         const modal = document.getElementById('customerAgreementModal');
         const body = document.getElementById('agreementModalBody');
-        const triggerButtons = document.querySelectorAll('.js-tag-agreement');
 
-        if (!modal || !body || triggerButtons.length === 0) {
+        if (!modal || !body) {
             return;
         }
 
@@ -1533,28 +1772,31 @@
             refreshBatchReviewPanel();
         };
 
-        triggerButtons.forEach((button) => {
-            button.addEventListener('click', async () => {
-                currentConfig = {
-                    workspaceUrl: String(button.dataset.workspaceUrl || ''),
-                    templateBaseUrl: String(button.dataset.templateBaseUrl || ''),
-                    draftUrl: String(button.dataset.draftUrl || ''),
-                    sendUrl: String(button.dataset.sendUrl || ''),
-                    customerName: String(button.dataset.customerName || ''),
-                };
+        document.addEventListener('click', async (event) => {
+            const button = event.target.closest('.js-tag-agreement');
+            if (!button) {
+                return;
+            }
 
-                currentAgreementId = null;
-                currentDraftId = null;
-                openModal();
-                showLoading();
+            currentConfig = {
+                workspaceUrl: String(button.dataset.workspaceUrl || ''),
+                templateBaseUrl: String(button.dataset.templateBaseUrl || ''),
+                draftUrl: String(button.dataset.draftUrl || ''),
+                sendUrl: String(button.dataset.sendUrl || ''),
+                customerName: String(button.dataset.customerName || ''),
+            };
 
-                try {
-                    await refreshWorkspace();
-                    renderWorkspace();
-                } catch (error) {
-                    showError(error.message || 'Failed to initialize agreement workspace.');
-                }
-            });
+            currentAgreementId = null;
+            currentDraftId = null;
+            openModal();
+            showLoading();
+
+            try {
+                await refreshWorkspace();
+                renderWorkspace();
+            } catch (error) {
+                showError(error.message || 'Failed to initialize agreement workspace.');
+            }
         });
 
         modal.querySelectorAll('[data-close-agreement-modal]').forEach((el) => {
@@ -1571,9 +1813,8 @@
     (() => {
         const modal = document.getElementById('customerSignedModal');
         const body = document.getElementById('signedModalBody');
-        const triggerButtons = document.querySelectorAll('.js-view-signed');
 
-        if (!modal || !body || triggerButtons.length === 0) {
+        if (!modal || !body) {
             return;
         }
 
@@ -1728,34 +1969,37 @@
             renderPreview(0);
         };
 
-        triggerButtons.forEach((button) => {
-            button.addEventListener('click', async () => {
-                const signedUrl = String(button.dataset.signedUrl || '');
-                const customerName = String(button.dataset.customerName || 'Customer');
+        document.addEventListener('click', async (event) => {
+            const button = event.target.closest('.js-view-signed');
+            if (!button) {
+                return;
+            }
 
-                openModal();
-                showLoading();
+            const signedUrl = String(button.dataset.signedUrl || '');
+            const customerName = String(button.dataset.customerName || 'Customer');
 
-                try {
-                    const response = await fetch(signedUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                    });
+            openModal();
+            showLoading();
 
-                    const payload = await response.json();
-                    if (!response.ok || !payload.success) {
-                        showError(payload.message || 'Unable to load signed copies.');
-                        return;
-                    }
+            try {
+                const response = await fetch(signedUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
 
-                    renderSignedModal(customerName, payload?.data?.records || []);
-                } catch (error) {
-                    showError('Network error while loading signed copies.');
+                const payload = await response.json();
+                if (!response.ok || !payload.success) {
+                    showError(payload.message || 'Unable to load signed copies.');
+                    return;
                 }
-            });
+
+                renderSignedModal(customerName, payload?.data?.records || []);
+            } catch (error) {
+                showError('Network error while loading signed copies.');
+            }
         });
 
         modal.querySelectorAll('[data-close-signed-modal]').forEach((el) => {

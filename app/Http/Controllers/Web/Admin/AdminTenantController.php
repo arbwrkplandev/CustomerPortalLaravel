@@ -101,12 +101,7 @@ class AdminTenantController extends Controller
         if ($search !== '') {
             $needle = strtolower($search);
             $items = $items->filter(function (object $item) use ($needle): bool {
-                return str_contains(strtolower((string) $item->company_name), $needle)
-                    || str_contains(strtolower((string) $item->company_code), $needle)
-                    || str_contains(strtolower((string) $item->contact_name), $needle)
-                    || str_contains(strtolower((string) $item->contact_email), $needle)
-                    || str_contains(strtolower((string) $item->city), $needle)
-                    || str_contains(strtolower((string) $item->country), $needle);
+                return str_contains(strtolower((string) $item->company_name), $needle);
             })->values();
         }
 
